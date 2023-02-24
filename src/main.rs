@@ -3,7 +3,7 @@ use jemallocator::Jemalloc;
 use mimalloc::MiMalloc;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering::SeqCst};
+use std::sync::atomic::{AtomicU8};
 use std::sync::Mutex;
 use std::time::Instant;
 // use tcmalloc;
@@ -36,8 +36,6 @@ pub struct BrugStruct {
     mode: AtomicU8,
 }
 
-static ALLOCATED: AtomicUsize = AtomicUsize::new(0);
-
 static mut BRUG: BrugStruct = BrugStruct {
     //could be the problem here?
     // ptr:AtomicPtr::new(&mut 0),
@@ -49,7 +47,7 @@ unsafe impl Sync for BrugStruct {}
 
 impl BrugStruct {
     unsafe fn input(&mut self, allocator: Allocator) {
-        self.mapping.lock();
+        self.mapping.lock().unwrap();
         let tree = self.mapping.get_mut().unwrap(); 
         tree.insert(1, allocator);      //This insert cause the segamentation fault
     }
@@ -100,13 +98,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
             }
         }
 
-        // BRUG.mapping.insert(ret, 1);
-        // BRUG.ptr.store(ret, SeqCst);
-        // BRUG.mode.store(1, SeqCst);
         BRUG.input(Allocator::_JEMALLOC_);
 
         if !ret.is_null() {
-            ALLOCATED.fetch_add(layout.size(), SeqCst);
+            panic!("Allocate_error")
         }
 
         ret
@@ -125,10 +120,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
             }
         }
 
-        // let mode = BRUG.mode.swap(0, SeqCst);
-        // print!("{}",mode);
-
-        ALLOCATED.fetch_sub(layout.size(), SeqCst);
+        //Remove the tree entry
     }
 
     // unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 { ... } //calloc
@@ -158,7 +150,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
         }
 
         if !ret.is_null() {
-            ALLOCATED.fetch_add(new_size - layout.size(), SeqCst);
+            panic!("Reallocae_error")
         }
 
         ret
@@ -211,6 +203,4 @@ fn main() {
     // println!("Testing {:?} multi-thread with {} integer push and {} repetations",_CURRENT_,DATASIZE,repeats);
 
     // test_multithread(repeats);
-
-    // println!("allocated bytes before main: {}", ALLOCATED.load(SeqCst));
 }
