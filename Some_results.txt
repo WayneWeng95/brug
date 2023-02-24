@@ -1,0 +1,88 @@
+Testing _MIMALLOC_ sequential with 100000000 integer push and 10 repetations
+Time elapsed in measurement() is: 2.159811955s
+Time elapsed in measurement() is: 2.151527708s
+Time elapsed in measurement() is: 2.168716533s
+Time elapsed in measurement() is: 2.169318582s
+Time elapsed in measurement() is: 2.168997377s
+Time elapsed in measurement() is: 2.162803639s
+Time elapsed in measurement() is: 2.161836076s
+Time elapsed in measurement() is: 2.135198146s
+Time elapsed in measurement() is: 2.127445455s
+Testing _MIMALLOC_ multi-thread with 100000000 integer push and 10 repetations
+Time elapsed in measurement() is: 2.295188262s
+Time elapsed in measurement() is: 2.449296976s
+Time elapsed in measurement() is: 2.483923479s
+Time elapsed in measurement() is: 2.535452993s
+Time elapsed in measurement() is: 2.535874929s
+Time elapsed in measurement() is: 2.56959406s
+Time elapsed in measurement() is: 2.582073666s
+Time elapsed in measurement() is: 2.599430044s
+Time elapsed in measurement() is: 2.604006739s
+Time elapsed in measurement() is: 2.659249975s
+
+Testing _SYS_ sequential with 100000000 integer push and 10 repetations
+Time elapsed in measurement() is: 2.063048985s
+Time elapsed in measurement() is: 2.034968441s
+Time elapsed in measurement() is: 2.043433823s
+Time elapsed in measurement() is: 2.053070882s
+Time elapsed in measurement() is: 2.047519211s
+Time elapsed in measurement() is: 2.036612726s
+Time elapsed in measurement() is: 2.03684224s
+Time elapsed in measurement() is: 2.037116502s
+Time elapsed in measurement() is: 2.037335595s
+Testing _SYS_ multi-thread with 100000000 integer push and 10 repetations
+Time elapsed in measurement() is: 2.033048303s
+Time elapsed in measurement() is: 2.0377359s
+Time elapsed in measurement() is: 2.062768249s
+Time elapsed in measurement() is: 2.066021607s
+Time elapsed in measurement() is: 2.090633751s
+Time elapsed in measurement() is: 2.105061566s
+Time elapsed in measurement() is: 2.137109157s
+Time elapsed in measurement() is: 2.153661565s
+Time elapsed in measurement() is: 2.168761762s
+Time elapsed in measurement() is: 2.203721223s
+
+
+Testing _MMAP_ sequential with 100000000 integer push and 10 repetations
+Time elapsed in measurement() is: 1.948954407s
+Time elapsed in measurement() is: 1.944675135s
+Time elapsed in measurement() is: 1.98051879s
+Time elapsed in measurement() is: 1.95141585s
+Time elapsed in measurement() is: 1.936069372s
+Time elapsed in measurement() is: 1.944509114s
+Time elapsed in measurement() is: 1.927967265s
+Time elapsed in measurement() is: 1.916260628s
+Time elapsed in measurement() is: 1.952997576s
+Testing _MMAP_ multi-thread with 100000000 integer push and 10 repetations
+Time elapsed in measurement() is: 2.025043279s
+Time elapsed in measurement() is: 2.027210891s
+Time elapsed in measurement() is: 2.058311717s
+Time elapsed in measurement() is: 2.077067266s
+Time elapsed in measurement() is: 2.077055545s
+Time elapsed in measurement() is: 2.102854177s
+Time elapsed in measurement() is: 2.113934616s
+Time elapsed in measurement() is: 2.127192415s
+Time elapsed in measurement() is: 2.166762923s
+Time elapsed in measurement() is: 2.182831125s
+
+Testing _JEMALLOC_ sequential with 100000000 integer push and 10 repetations
+Time elapsed in measurement() is: 2.307136158s
+Time elapsed in measurement() is: 2.285219254s
+Time elapsed in measurement() is: 2.326188532s
+Time elapsed in measurement() is: 2.239636529s
+Time elapsed in measurement() is: 2.350161786s
+Time elapsed in measurement() is: 2.321782409s
+Time elapsed in measurement() is: 2.346727668s
+Time elapsed in measurement() is: 2.37691849s
+Time elapsed in measurement() is: 2.341434262s
+Testing _JEMALLOC_ multi-thread with 100000000 integer push and 10 repetations
+Time elapsed in measurement() is: 2.12332265s
+Time elapsed in measurement() is: 2.289311383s
+Time elapsed in measurement() is: 2.400366716s
+Time elapsed in measurement() is: 2.438350141s
+Time elapsed in measurement() is: 2.442502082s
+Time elapsed in measurement() is: 2.476417478s
+Time elapsed in measurement() is: 2.476814134s
+Time elapsed in measurement() is: 2.47721492s
+Time elapsed in measurement() is: 2.500879041s
+Time elapsed in measurement() is: 2.510910313s
