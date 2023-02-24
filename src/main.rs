@@ -3,9 +3,9 @@ use jemallocator::Jemalloc;
 use mimalloc::MiMalloc;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU8};
+use std::sync::atomic::AtomicU8;
 use std::sync::Mutex;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 // use tcmalloc;
 // use std::cell::RefCell;
 // use std::cell::Cell;
@@ -25,7 +25,7 @@ enum Allocator {
 }
 
 static _CURRENT_: Allocator = Allocator::_JEMALLOC_;
-static DATASIZE:i32 = 100_000_000;
+static DATASIZE: i32 = 100_000_000;
 // static PAGE_SIZE : usize = 4096;
 // static HUGE_PAGE_SIZE : usize = 16777216;
 
@@ -34,23 +34,37 @@ pub struct BrugStruct {
     // total_size: u128,
     // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
+    records: Mutex<BTreeMap<usize, Duration>>
 }
 
 static mut BRUG: BrugStruct = BrugStruct {
     //could be the problem here?
     // ptr:AtomicPtr::new(&mut 0),
-    mapping: Mutex::new(BTreeMap::new()),       //A tree to hold the allocator applied for this particular memory
-    mode: AtomicU8::new(0),     //Indicating the Brug current mode
+    mapping: Mutex::new(BTreeMap::new()), //A tree to hold the allocator applied for this particular memory
+    mode: AtomicU8::new(0),               //Indicating the Brug current mode
+    records: Mutex::new(BTreeMap::new()),// A tree to hold results for different size allocations
 };
 
 unsafe impl Sync for BrugStruct {}
 
 impl BrugStruct {
-    unsafe fn input(&mut self, allocator: Allocator) {
+    unsafe fn input(&mut self, allocator: Allocator) {      //record the allocator mode
         self.mapping.lock().unwrap();
-        let tree = self.mapping.get_mut().unwrap(); 
-        tree.insert(1, allocator);      //This insert cause the segamentation fault
+        let tree = self.mapping.get_mut().unwrap();
+        tree.insert(1, allocator); //This insert cause the segamentation fault
     }
+    unsafe fn suggest(&mut self, ptr: *mut u8, allocator: Allocator) {      //change the allocator in next reallocation
+        self.mapping.lock().unwrap();
+        let tree = self.mapping.get_mut().unwrap();
+        //tree.replace
+    }
+    unsafe fn remove(&mut self, ptr: i32) {     //remove the entry when deallocate
+        self.mapping.lock().unwrap();
+        let tree = self.mapping.get_mut().unwrap();
+        tree.remove(&ptr);
+    }
+    // unsafe fn record(){}     //a function to record the related results 
+    // unsafe fn optimization(){}   //a function to adjust the allocator according to the data collected
 }
 
 #[global_allocator]
@@ -187,16 +201,18 @@ fn test_multithread(numbers: i32) {
         })
         .collect();
 
-    for handle in threads{
+    for handle in threads {
         handle.join().unwrap();
     }
 }
 
 fn main() {
-
     let repeats = 1;
 
-    println!("Testing {:?} sequential with {} integer push and {} repetations",_CURRENT_,DATASIZE,repeats);
+    println!(
+        "Testing {:?} sequential with {} integer push and {} repetations",
+        _CURRENT_, DATASIZE, repeats
+    );
 
     test_sequential(repeats);
 
