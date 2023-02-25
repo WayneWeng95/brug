@@ -67,8 +67,8 @@ impl BrugStruct {
     }
     unsafe fn record(){
 
-        // recording the speed for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger 
-    }     //a function to record the related results 
+    // recording the speed for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger 
+    }   //a function to record the related results 
     // unsafe fn optimization(){}   //a function to adjust the allocator according to the data collected
 }
 
@@ -117,10 +117,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
             }
         }
 
-        BRUG.input(Allocator::_JEMALLOC_);
+        // BRUG.input(Allocator::_JEMALLOC_);
 
-        if !ret.is_null() {
-            panic!("Allocate_error")
+        if ret.is_null() {
+            panic!("Allocate_error");
         }
 
         ret
@@ -168,8 +168,8 @@ unsafe impl GlobalAlloc for BrugAllocator {
             }
         }
 
-        if !ret.is_null() {
-            panic!("Reallocae_error")
+        if ret.is_null() {
+            panic!("Reallocae_error");
         }
 
         ret
