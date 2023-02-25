@@ -15,7 +15,7 @@ use std::thread;
 
 struct BrugAllocator;
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 enum Allocator {
     _SYS_,
     //  _TCMALLOC_,
@@ -34,7 +34,8 @@ pub struct BrugStruct {
     // total_size: u128,
     // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
-    records: Mutex<BTreeMap<usize, Duration>>
+    records:Mutex<[Duration;5]>,        //Need two array?
+    optimized:Mutex<[Allocator;5]>,
 }
 
 static mut BRUG: BrugStruct = BrugStruct {
@@ -42,7 +43,8 @@ static mut BRUG: BrugStruct = BrugStruct {
     // ptr:AtomicPtr::new(&mut 0),
     mapping: Mutex::new(BTreeMap::new()), //A tree to hold the allocator applied for this particular memory
     mode: AtomicU8::new(0),               //Indicating the Brug current mode
-    records: Mutex::new(BTreeMap::new()),// A tree to hold results for different size allocations
+    records: Mutex::new([Duration::new(0,0);5]),// A tree to hold results for different size allocations
+    optimized: Mutex::new([Allocator::_SYS_;5]),
 };
 
 unsafe impl Sync for BrugStruct {}
@@ -63,7 +65,10 @@ impl BrugStruct {
         let tree = self.mapping.get_mut().unwrap();
         tree.remove(&ptr);
     }
-    // unsafe fn record(){}     //a function to record the related results 
+    unsafe fn record(){
+
+        // recording the speed for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger 
+    }     //a function to record the related results 
     // unsafe fn optimization(){}   //a function to adjust the allocator according to the data collected
 }
 
