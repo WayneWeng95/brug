@@ -5,7 +5,7 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicU8;
 use std::sync::Mutex;
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 // use tcmalloc;
 // use std::cell::RefCell;
 // use std::cell::Cell;
@@ -15,7 +15,7 @@ use std::thread;
 
 struct BrugAllocator;
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 enum Allocator {
     _SYS_,
     //  _TCMALLOC_,
@@ -34,8 +34,8 @@ pub struct BrugStruct {
     // total_size: u128,
     // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
-    records:Mutex<[Duration;5]>,        //Need two array?
-    optimized:Mutex<[Allocator;5]>,
+    records: Mutex<[Duration; 5]>, //Need two array?
+    optimized: Mutex<[Allocator; 5]>,
 }
 
 static mut BRUG: BrugStruct = BrugStruct {
@@ -43,33 +43,36 @@ static mut BRUG: BrugStruct = BrugStruct {
     // ptr:AtomicPtr::new(&mut 0),
     mapping: Mutex::new(BTreeMap::new()), //A tree to hold the allocator applied for this particular memory
     mode: AtomicU8::new(0),               //Indicating the Brug current mode
-    records: Mutex::new([Duration::new(0,0);5]),// A tree to hold results for different size allocations
-    optimized: Mutex::new([Allocator::_SYS_;5]),
+    records: Mutex::new([Duration::new(0, 0); 5]), // A tree to hold results for different size allocations
+    optimized: Mutex::new([Allocator::_SYS_; 5]),
 };
 
 unsafe impl Sync for BrugStruct {}
 
 impl BrugStruct {
-    unsafe fn input(&mut self, allocator: Allocator) {      //record the allocator mode
+    unsafe fn input(&mut self, allocator: Allocator) {
+        //record the allocator mode
         self.mapping.lock().unwrap();
         let tree = self.mapping.get_mut().unwrap();
         tree.insert(1, allocator); //This insert cause the segamentation fault
     }
-    unsafe fn suggest(&mut self, ptr: *mut u8, allocator: Allocator) {      //change the allocator in next reallocation
+    unsafe fn suggest(&mut self, ptr: *mut u8, allocator: Allocator) {
+        //change the allocator in next reallocation
         self.mapping.lock().unwrap();
         let tree = self.mapping.get_mut().unwrap();
         //tree.replace
     }
-    unsafe fn remove(&mut self, ptr: i32) {     //remove the entry when deallocate
+    unsafe fn remove(&mut self, ptr: i32) {
+        //remove the entry when deallocate
         self.mapping.lock().unwrap();
         let tree = self.mapping.get_mut().unwrap();
         tree.remove(&ptr);
     }
-    unsafe fn record(){
+    unsafe fn record() {
 
-    // recording the speed for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger 
-    }   //a function to record the related results 
-    // unsafe fn optimization(){}   //a function to adjust the allocator according to the data collected
+        // recording the speed for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger
+    } //a function to record the related results
+      // unsafe fn optimization(){}   //a function to adjust the allocator according to the data collected
 }
 
 #[global_allocator]
@@ -211,9 +214,25 @@ fn test_multithread(numbers: i32) {
     }
 }
 
-fn main() {
-    let repeats = 1;
+pub fn seq_test(repeats: i32) {
+    println!(
+        "Testing {:?} sequential with {} integer push and {} repetations",
+        _CURRENT_, DATASIZE, repeats
+    );
 
+    test_sequential(repeats);
+}
+
+pub fn multi_test(repeats: i32) {
+    println!(
+        "Testing {:?} multi-thread with {} integer push and {} repetations",
+        _CURRENT_, DATASIZE, repeats
+    );
+
+    test_multithread(repeats);
+}
+
+pub fn combine_test(repeats: i32) {
     println!(
         "Testing {:?} sequential with {} integer push and {} repetations",
         _CURRENT_, DATASIZE, repeats
@@ -221,7 +240,25 @@ fn main() {
 
     test_sequential(repeats);
 
-    // println!("Testing {:?} multi-thread with {} integer push and {} repetations",_CURRENT_,DATASIZE,repeats);
+    println!(
+        "Testing {:?} multi-thread with {} integer push and {} repetations",
+        _CURRENT_, DATASIZE, repeats
+    );
 
-    // test_multithread(repeats);
+    test_multithread(repeats);
 }
+
+// fn main() {
+//     let repeats = 10;
+
+//     println!(
+//         "Testing {:?} sequential with {} integer push and {} repetations",
+//         _CURRENT_, DATASIZE, repeats
+//     );
+
+//     test_sequential(repeats);
+
+//     // println!("Testing {:?} multi-thread with {} integer push and {} repetations",_CURRENT_,DATASIZE,repeats);
+
+//     // test_multithread(repeats);
+// }
