@@ -51,7 +51,7 @@ unsafe impl Sync for BrugStruct {}
 impl BrugStruct {
     unsafe fn input(&mut self, allocator: Allocator) {
         //record the allocator mode
-        self.mapping.lock().unwrap();
+        self.mapping.lock().unwrap(); //change to try_lock()
         let tree = self.mapping.get_mut().unwrap();
         tree.insert(1, allocator); //This insert cause the segamentation fault
     }
@@ -68,7 +68,8 @@ impl BrugStruct {
         tree.remove(&ptr);
     }
 
-    fn size_match(size: usize) -> usize { // recording the speed for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger
+    fn size_match(size: usize) -> usize {
+        // size identifier for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger
         if size <= PTE_PAGE_SIZE {
             return 1;
         } else if PTE_PAGE_SIZE < size || size <= PMD_PAGE_SIZE {
@@ -83,19 +84,45 @@ impl BrugStruct {
     }
 
     unsafe fn record(&mut self, size: usize, time: Duration, allocator: Allocator) {
-        self.records.lock().unwrap();
-        let record_table = self.records.get_mut().unwrap();
         let size_type = Self::size_match(size);
-        let allocat_type: usize = match allocator {
+        let allocator_type: usize = match allocator {
             Allocator::_SYS_ => 1,
             Allocator::_JEMALLOC_ => 2,
             Allocator::_MIMALLOC_ => 3,
             Allocator::_MMAP_ => 4,
         };
-        record_table[size_type][allocat_type] = time;
+        let record_table = self.records.get_mut().unwrap();
+        let size_type = Self::size_match(size);
+        record_table[size_type][allocator_type] = time;
     }
-    unsafe fn optimization(){}   //a function to adjust the allocator according to the data collected
-    //check the number and see which one cloud work better
+
+    // fn position_max_copy<T: Ord + Copy>(slice: &[T]) -> Option<usize> {
+    //     slice.iter().enumerate().max_by_key(|(_, &value)| value).map(|(idx, _)| idx)
+    // }
+
+    fn position_max<T: Ord>(slice: &[T]) -> Option<usize> {
+        slice
+            .iter()
+            .enumerate()
+            .max_by(|(_, value0), (_, value1)| value0.cmp(value1))
+            .map(|(idx, _)| idx)
+    }
+
+    unsafe fn optimization_mode(&mut self, size: usize) -> Allocator {
+        let size_type = Self::size_match(size);
+        let record_table = self.records.get_mut().unwrap();
+        let allocator_type = Self::position_max(&record_table[size_type]).unwrap();
+        let best_allocator = match allocator_type {
+            1 => Allocator::_SYS_,
+            2 => Allocator::_JEMALLOC_,
+            3 => Allocator::_MIMALLOC_,
+            4 => Allocator::_MMAP_,
+            _ => Allocator::_SYS_, // in case of error, fall back to the system allocator
+        };
+        best_allocator
+        // let allocator_type = record_table[size_type].iter().min();
+    } //a function to adjust the allocator according to the data collected
+      //check the number and see which one cloud work better
 }
 
 #[global_allocator]
