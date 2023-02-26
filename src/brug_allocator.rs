@@ -26,15 +26,16 @@ enum Allocator {
 
 static _CURRENT_: Allocator = Allocator::_JEMALLOC_;
 static DATASIZE: i32 = 100_000_000;
-// static PAGE_SIZE : usize = 4096;
-// static HUGE_PAGE_SIZE : usize = 16777216;
+static PTE_PAGE_SIZE: usize = 4096;
+static PMD_PAGE_SIZE: usize = 2097152;
+static PUD_PAGE_SIZE: usize = 1073741824;
 
 pub struct BrugStruct {
     mapping: Mutex<BTreeMap<i32, Allocator>>,
     // total_size: u128,
     // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
-    records: Mutex<[[Duration; 5];4]>, 
+    records: Mutex<[[Duration; 5]; 4]>,
 }
 
 static mut BRUG: BrugStruct = BrugStruct {
@@ -42,7 +43,7 @@ static mut BRUG: BrugStruct = BrugStruct {
     // ptr:AtomicPtr::new(&mut 0),
     mapping: Mutex::new(BTreeMap::new()), //A tree to hold the allocator applied for this particular memory
     mode: AtomicU8::new(0),               //Indicating the Brug current mode
-    records: Mutex::new([[Duration::new(0, 0); 5]; 4]), // A tree to hold results for different size allocations
+    records: Mutex::new([[Duration::new(0, 0); 5]; 4]), // A 2-d array for holding the records, [size][allocator]
 };
 
 unsafe impl Sync for BrugStruct {}
@@ -66,11 +67,35 @@ impl BrugStruct {
         let tree = self.mapping.get_mut().unwrap();
         tree.remove(&ptr);
     }
-    unsafe fn record() {
 
-        // recording the speed for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger
-    } //a function to record the related results
-      // unsafe fn optimization(){}   //a function to adjust the allocator according to the data collected
+    fn size_match(size: usize) -> usize { // recording the speed for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger
+        if size <= PTE_PAGE_SIZE {
+            return 1;
+        } else if PTE_PAGE_SIZE < size || size <= PMD_PAGE_SIZE {
+            return 2;
+        } else if PMD_PAGE_SIZE < size || size <= PUD_PAGE_SIZE {
+            return 3;
+        } else if PUD_PAGE_SIZE < size {
+            return 4;
+        } else {
+            return 5;
+        };
+    }
+
+    unsafe fn record(&mut self, size: usize, time: Duration, allocator: Allocator) {
+        self.records.lock().unwrap();
+        let record_table = self.records.get_mut().unwrap();
+        let size_type = Self::size_match(size);
+        let allocat_type: usize = match allocator {
+            Allocator::_SYS_ => 1,
+            Allocator::_JEMALLOC_ => 2,
+            Allocator::_MIMALLOC_ => 3,
+            Allocator::_MMAP_ => 4,
+        };
+        record_table[size_type][allocat_type] = time;
+    }
+    unsafe fn optimization(){}   //a function to adjust the allocator according to the data collected
+    //check the number and see which one cloud work better
 }
 
 #[global_allocator]
