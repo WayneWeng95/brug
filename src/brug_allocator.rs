@@ -34,8 +34,7 @@ pub struct BrugStruct {
     // total_size: u128,
     // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
-    records: Mutex<[Duration; 5]>, //Need two array?
-    optimized: Mutex<[Allocator; 5]>,
+    records: Mutex<[[Duration; 5];4]>, 
 }
 
 static mut BRUG: BrugStruct = BrugStruct {
@@ -43,8 +42,7 @@ static mut BRUG: BrugStruct = BrugStruct {
     // ptr:AtomicPtr::new(&mut 0),
     mapping: Mutex::new(BTreeMap::new()), //A tree to hold the allocator applied for this particular memory
     mode: AtomicU8::new(0),               //Indicating the Brug current mode
-    records: Mutex::new([Duration::new(0, 0); 5]), // A tree to hold results for different size allocations
-    optimized: Mutex::new([Allocator::_SYS_; 5]),
+    records: Mutex::new([[Duration::new(0, 0); 5]; 4]), // A tree to hold results for different size allocations
 };
 
 unsafe impl Sync for BrugStruct {}
