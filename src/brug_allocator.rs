@@ -25,7 +25,6 @@ enum Allocator {
 }
 
 static _CURRENT_: Allocator = Allocator::_JEMALLOC_;
-static DATASIZE: i32 = 100_000_000;
 static PTE_PAGE_SIZE: usize = 4096;
 static PMD_PAGE_SIZE: usize = 2097152;
 static PUD_PAGE_SIZE: usize = 1073741824;
@@ -38,6 +37,7 @@ pub struct BrugStruct {
     records: Mutex<[[Duration; 5]; 4]>,
 }
 
+#[allow(dead_code)]
 static mut BRUG: BrugStruct = BrugStruct {
     //could be the problem here?
     // ptr:AtomicPtr::new(&mut 0),
@@ -48,24 +48,25 @@ static mut BRUG: BrugStruct = BrugStruct {
 
 unsafe impl Sync for BrugStruct {}
 
+#[allow(dead_code)]
 impl BrugStruct {
     unsafe fn input(&mut self, allocator: Allocator) {
         //record the allocator mode
         self.mapping.lock().unwrap(); //change to try_lock()
-        let tree = self.mapping.get_mut().unwrap();
-        tree.insert(1, allocator); //This insert cause the segamentation fault
+        let _tree = self.mapping.get_mut().unwrap();
+        _tree.insert(1, allocator); //This insert cause the segamentation fault
     }
     unsafe fn suggest(&mut self, ptr: *mut u8, allocator: Allocator) {
         //change the allocator in next reallocation
         self.mapping.lock().unwrap();
-        let tree = self.mapping.get_mut().unwrap();
+        let _tree = self.mapping.get_mut().unwrap();
         //tree.replace
     }
     unsafe fn remove(&mut self, ptr: i32) {
         //remove the entry when deallocate
         self.mapping.lock().unwrap();
-        let tree = self.mapping.get_mut().unwrap();
-        tree.remove(&ptr);
+        let _tree = self.mapping.get_mut().unwrap();
+        _tree.remove(&ptr);
     }
 
     fn size_match(size: usize) -> usize {
@@ -84,16 +85,15 @@ impl BrugStruct {
     }
 
     unsafe fn record(&mut self, size: usize, time: Duration, allocator: Allocator) {
-        let size_type = Self::size_match(size);
-        let allocator_type: usize = match allocator {
+        let _size_type = Self::size_match(size);
+        let _allocator_type: usize = match allocator {
             Allocator::_SYS_ => 1,
             Allocator::_JEMALLOC_ => 2,
             Allocator::_MIMALLOC_ => 3,
             Allocator::_MMAP_ => 4,
         };
         let record_table = self.records.get_mut().unwrap();
-        let size_type = Self::size_match(size);
-        record_table[size_type][allocator_type] = time;
+        record_table[_size_type][_allocator_type] = time;
     }
 
     // fn position_max_copy<T: Ord + Copy>(slice: &[T]) -> Option<usize> {
@@ -120,7 +120,6 @@ impl BrugStruct {
             _ => Allocator::_SYS_, // in case of error, fall back to the system allocator
         };
         best_allocator
-        // let allocator_type = record_table[size_type].iter().min();
     } //a function to adjust the allocator according to the data collected
       //check the number and see which one cloud work better
 }
@@ -229,12 +228,12 @@ unsafe impl GlobalAlloc for BrugAllocator {
     }
 }
 
-fn measurements() {
+fn measurements(datasize: i32) {
     let mut v = Vec::new();
 
     let start = Instant::now();
 
-    for n in 0..DATASIZE {
+    for n in 0..datasize {
         v.push(n);
         // println!("{} get pushed", n);
     }
@@ -244,17 +243,17 @@ fn measurements() {
     println!("Time measured is: {:?}", duration);
 }
 
-fn test_sequential(numbers: i32) {
+fn test_sequential(numbers: i32, datasize: i32) {
     for _n in 0..numbers {
-        measurements();
+        measurements(datasize);
     }
 }
 
-fn test_multithread(numbers: i32) {
+fn test_multithread(numbers: i32, datasize: i32) {
     let threads: Vec<_> = (0..numbers)
         .map(|_i| {
             thread::spawn(move || {
-                measurements();
+                measurements(datasize);
             })
         })
         .collect();
@@ -264,38 +263,38 @@ fn test_multithread(numbers: i32) {
     }
 }
 
-pub fn seq_test(repeats: i32) {
+pub fn seq_test(repeats: i32, datasize: i32) {
     println!(
         "Testing {:?} sequential with {} integer push and {} repetations",
-        _CURRENT_, DATASIZE, repeats
+        _CURRENT_, datasize, repeats
     );
 
-    test_sequential(repeats);
+    test_sequential(repeats, datasize);
 }
 
-pub fn multi_test(repeats: i32) {
+pub fn multi_test(repeats: i32, datasize: i32) {
     println!(
         "Testing {:?} multi-thread with {} integer push and {} repetations",
-        _CURRENT_, DATASIZE, repeats
+        _CURRENT_, datasize, repeats
     );
 
-    test_multithread(repeats);
+    test_multithread(repeats, datasize);
 }
 
-pub fn combine_test(repeats: i32) {
+pub fn combine_test(repeats: i32, datasize: i32) {
     println!(
         "Testing {:?} sequential with {} integer push and {} repetations",
-        _CURRENT_, DATASIZE, repeats
+        _CURRENT_, datasize, repeats
     );
 
-    test_sequential(repeats);
+    test_sequential(repeats, datasize);
 
     println!(
         "Testing {:?} multi-thread with {} integer push and {} repetations",
-        _CURRENT_, DATASIZE, repeats
+        _CURRENT_, datasize, repeats
     );
 
-    test_multithread(repeats);
+    test_multithread(repeats, datasize);
 }
 
 // fn main() {
