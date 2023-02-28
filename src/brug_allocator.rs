@@ -24,19 +24,24 @@ enum Allocator {
     _MMAP_,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct Allocdata {
+    allocator: Allocator,
+    counter: i32,
+}
+
 static _CURRENT_: Allocator = Allocator::_SYS_;
 static PTE_PAGE_SIZE: usize = 4096;
 static PMD_PAGE_SIZE: usize = 2097152;
 static PUD_PAGE_SIZE: usize = 1073741824;
 
 pub struct BrugStruct {
-    mapping: Mutex<BTreeMap<usize, Allocator>>,
+    mapping: Mutex<BTreeMap<usize, Allocdata>>,
     // total_size: u128,
     // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
     records: Mutex<[[Duration; 4]; 4]>,
 }
-
 unsafe impl Sync for BrugStruct {}
 
 #[allow(dead_code)]
@@ -50,18 +55,35 @@ static mut BRUG: BrugStruct = BrugStruct {
 
 #[allow(dead_code)]
 impl BrugStruct {
-    unsafe fn input(&mut self, _address: usize, allocator: Allocator) {
+    unsafe fn input(&mut self, address: usize, alloc_data: Allocdata) {
         //record the allocator mode
         self.mapping.lock().unwrap(); //change to try_lock()
         let _tree = self.mapping.get_mut().unwrap();
-        _tree.insert(_address, allocator); //This insert cause the segamentation fault
+        _tree.insert(address, alloc_data); //This insert cause the segamentation fault
     }
-    unsafe fn suggest(&mut self, ptr: *mut u8, allocator: Allocator) {
+    unsafe fn suggest(&mut self, ptr: *mut u8, alloc_data: Allocdata) {
         //change the allocator with preference in next reallocation
         self.mapping.lock().unwrap();
         let _tree = self.mapping.get_mut().unwrap();
-        _tree.insert(ptr.clone() as usize, allocator); //Insert the value of the PTR
+        _tree.insert(ptr.clone() as usize, alloc_data); //Insert the value of the PTR
     }
+
+    unsafe fn counter_grow(&mut self, address: usize) {
+        self.mapping.lock().unwrap();
+        let _tree = self.mapping.get_mut().unwrap();
+        let mut _alloc_data = _tree.remove_entry(&address).unwrap();        //try first  the reallocation growing
+        _alloc_data.1.counter += 1;
+        _tree.insert(address, _alloc_data.1);
+    }
+
+    unsafe fn counter_grow_copy(&mut self, old_address: usize,new_address:usize){
+        self.mapping.lock().unwrap();
+        let _tree = self.mapping.get_mut().unwrap();
+        let mut _alloc_data = _tree.remove_entry(&old_address).unwrap();
+        _alloc_data.1.counter += 1;
+        _tree.insert(new_address, _alloc_data.1);
+    }
+
     unsafe fn remove(&mut self, ptr: *mut u8) {
         //remove the entry when deallocate
         self.mapping.lock().unwrap();
@@ -83,9 +105,9 @@ impl BrugStruct {
         };
     }
 
-    unsafe fn record(&mut self, size: usize, time: Duration, allocator: Allocator) {
+    unsafe fn record(&mut self, size: usize, time: Duration, alloc_data: Allocdata) {
         let _size_type = Self::size_match(size);
-        let _allocator_type: usize = match allocator {
+        let _allocator_type: usize = match alloc_data.allocator {
             Allocator::_SYS_ => 1,
             Allocator::_JEMALLOC_ => 2,
             Allocator::_MIMALLOC_ => 3,
@@ -172,8 +194,12 @@ unsafe impl GlobalAlloc for BrugAllocator {
         if layout.size() > PTE_PAGE_SIZE {
             //We record this object usage
             let _duration = _start.elapsed();
-            BRUG.input(ret.clone() as usize, _CURRENT_);
-            BRUG.record(layout.size(), _duration, _CURRENT_);
+            let _alloc_data = Allocdata {
+                allocator: _CURRENT_,
+                counter: 1,
+            };
+            BRUG.input(ret.clone() as usize, _alloc_data);
+            BRUG.record(layout.size(), _duration, _alloc_data);
         }
 
         if ret.is_null() {
@@ -202,6 +228,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
     // #[inline]
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         let ret: *mut u8;
+        let _old_addr = ptr.clone() as usize;
         match _CURRENT_ {
             Allocator::_SYS_ => ret = System.realloc(ptr, layout, new_size),
             // Allocator::_TCMALLOC_ => {
@@ -221,6 +248,21 @@ unsafe impl GlobalAlloc for BrugAllocator {
 
                 ret = libc::mremap(old_address, layout.size(), new_size, libc::MREMAP_MAYMOVE)
                     as *mut u8
+            }
+        }
+
+        if layout.size() > PTE_PAGE_SIZE {      //Fixing the mechanism on update counter
+            
+
+        }else {
+            let _ret = ret.clone() as usize;
+            if _old_addr == _ret {
+                // println!("growth");
+                // BRUG.counter_grow(_old_addr);
+            } else {
+                // println!("copy");
+                // BRUG.counter_grow_copy(_old_addr,_ret);
+                //get the counter
             }
         }
 
