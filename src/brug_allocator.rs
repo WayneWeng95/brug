@@ -30,12 +30,14 @@ static PMD_PAGE_SIZE: usize = 2097152;
 static PUD_PAGE_SIZE: usize = 1073741824;
 
 pub struct BrugStruct {
-    mapping: Mutex<BTreeMap<i32, Allocator>>,
+    mapping: Mutex<BTreeMap<i32,Allocator>>,
     // total_size: u128,
     // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
     records: Mutex<[[Duration; 5]; 4]>,
 }
+
+unsafe impl Sync for BrugStruct {}
 
 #[allow(dead_code)]
 static mut BRUG: BrugStruct = BrugStruct {
@@ -45,8 +47,6 @@ static mut BRUG: BrugStruct = BrugStruct {
     mode: AtomicU8::new(0),               //Indicating the Brug current mode
     records: Mutex::new([[Duration::new(0, 0); 5]; 4]), // A 2-d array for holding the records, [size][allocator]
 };
-
-unsafe impl Sync for BrugStruct {}
 
 #[allow(dead_code)]
 impl BrugStruct {
@@ -141,13 +141,13 @@ unsafe impl GlobalAlloc for BrugAllocator {
             Allocator::_JEMALLOC_ => ret = Jemalloc.alloc(layout),
             Allocator::_MMAP_ => {
                 //size alignments
-                const ADDR: *mut c_void = ptr::null_mut::<c_void>();
                 // let size:usize;          //Alignments, current disable
                 // match layout.size() >= HUGE_PAGE_SIZE{
                 //     true => size = (layout.size()+HUGE_PAGE_SIZE)/HUGE_PAGE_SIZE*HUGE_PAGE_SIZE,
                 //     false => size = (layout.size()+PAGE_SIZE)/PAGE_SIZE*PAGE_SIZE,
                 // };
 
+                const ADDR: *mut c_void = ptr::null_mut::<c_void>();
                 ret = libc::mmap(
                     ADDR,
                     layout.size(),
@@ -169,7 +169,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
             }
         }
 
-        // BRUG.input(Allocator::_JEMALLOC_);
+        if layout.size() > PTE_PAGE_SIZE {
+            BRUG.input(_CURRENT_);
+            // println!("{}",layout.size());
+        }
 
         if ret.is_null() {
             panic!("Allocate_error");
@@ -218,7 +221,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
                 ret = libc::mremap(old_address, layout.size(), new_size, libc::MREMAP_MAYMOVE)
                     as *mut u8
             }
+            
         }
+
+        // println!("Realloc:{}",layout.size());
 
         if ret.is_null() {
             panic!("Reallocae_error");
