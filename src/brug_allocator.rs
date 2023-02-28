@@ -24,17 +24,17 @@ enum Allocator {
     _MMAP_,
 }
 
-static _CURRENT_: Allocator = Allocator::_JEMALLOC_;
+static _CURRENT_: Allocator = Allocator::_SYS_;
 static PTE_PAGE_SIZE: usize = 4096;
 static PMD_PAGE_SIZE: usize = 2097152;
 static PUD_PAGE_SIZE: usize = 1073741824;
 
 pub struct BrugStruct {
-    mapping: Mutex<BTreeMap<i32,Allocator>>,
+    mapping: Mutex<BTreeMap<usize, Allocator>>,
     // total_size: u128,
     // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
-    records: Mutex<[[Duration; 5]; 4]>,
+    records: Mutex<[[Duration; 4]; 4]>,
 }
 
 unsafe impl Sync for BrugStruct {}
@@ -45,42 +45,41 @@ static mut BRUG: BrugStruct = BrugStruct {
     // ptr:AtomicPtr::new(&mut 0),
     mapping: Mutex::new(BTreeMap::new()), //A tree to hold the allocator applied for this particular memory
     mode: AtomicU8::new(0),               //Indicating the Brug current mode
-    records: Mutex::new([[Duration::new(0, 0); 5]; 4]), // A 2-d array for holding the records, [size][allocator]
+    records: Mutex::new([[Duration::new(0, 0); 4]; 4]), // A 2-d array for holding the records, [size][allocator]
 };
 
 #[allow(dead_code)]
 impl BrugStruct {
-    unsafe fn input(&mut self, allocator: Allocator) {
+    unsafe fn input(&mut self, _address: usize, allocator: Allocator) {
         //record the allocator mode
         self.mapping.lock().unwrap(); //change to try_lock()
         let _tree = self.mapping.get_mut().unwrap();
-        _tree.insert(1, allocator); //This insert cause the segamentation fault
+        _tree.insert(_address, allocator); //This insert cause the segamentation fault
     }
     unsafe fn suggest(&mut self, ptr: *mut u8, allocator: Allocator) {
-        //change the allocator in next reallocation
+        //change the allocator with preference in next reallocation
         self.mapping.lock().unwrap();
         let _tree = self.mapping.get_mut().unwrap();
-        //tree.replace
+        _tree.insert(ptr.clone() as usize, allocator); //Insert the value of the PTR
     }
-    unsafe fn remove(&mut self, ptr: i32) {
+    unsafe fn remove(&mut self, ptr: *mut u8) {
         //remove the entry when deallocate
         self.mapping.lock().unwrap();
         let _tree = self.mapping.get_mut().unwrap();
-        _tree.remove(&ptr);
+        let _ptr = ptr.clone() as usize;
+        _tree.remove(&_ptr);
     }
 
     fn size_match(size: usize) -> usize {
         // size identifier for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger
-        if size <= PTE_PAGE_SIZE {
+        if PTE_PAGE_SIZE < size || size <= PMD_PAGE_SIZE {
             return 1;
-        } else if PTE_PAGE_SIZE < size || size <= PMD_PAGE_SIZE {
-            return 2;
         } else if PMD_PAGE_SIZE < size || size <= PUD_PAGE_SIZE {
-            return 3;
+            return 2;
         } else if PUD_PAGE_SIZE < size {
-            return 4;
+            return 3;
         } else {
-            return 5;
+            return 4;
         };
     }
 
@@ -131,6 +130,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
     // #[inline]        //inline seems downgrade the performance
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let ret: *mut u8;
+        let _start = Instant::now();
 
         match _CURRENT_ {
             Allocator::_SYS_ => ret = System.alloc(layout),
@@ -170,8 +170,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
         }
 
         if layout.size() > PTE_PAGE_SIZE {
-            BRUG.input(_CURRENT_);
-            // println!("{}",layout.size());
+            //We record this object usage
+            let _duration = _start.elapsed();
+            BRUG.input(ret.clone() as usize, _CURRENT_);
+            BRUG.record(layout.size(), _duration, _CURRENT_);
         }
 
         if ret.is_null() {
@@ -183,6 +185,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
 
     // #[inline]
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        BRUG.remove(ptr);
         match _CURRENT_ {
             Allocator::_SYS_ => System.dealloc(ptr, layout),
             // Allocator::_TCMALLOC_ => tcmalloc::tc_free(ptr as *mut c_void),
@@ -193,8 +196,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
                 libc::munmap(addr, layout.size());
             }
         }
-
-        //Remove the tree entry
     }
 
     // unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 { ... } //calloc
@@ -221,7 +222,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
                 ret = libc::mremap(old_address, layout.size(), new_size, libc::MREMAP_MAYMOVE)
                     as *mut u8
             }
-            
         }
 
         // println!("Realloc:{}",layout.size());
