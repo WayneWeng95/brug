@@ -4,13 +4,29 @@ mod brug_allocator;
 #[cfg(unix)]
 pub use crate::brug_allocator::*;
 
+#[macro_export]
+macro_rules! set_allocator_mode {
+    ( $mand_1:expr, $( $x:expr ),* ) => {
+        {
+
+            unsafe {
+                brug_allocator::BrugStruct::set_mode($mand_1);
+            }
+            $(
+                $x;
+            )*
+            unsafe {
+                brug_allocator::BrugStruct::end_set();
+            }
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use crate::brug_allocator;
-    use std::time::{Instant};
     use std::thread;
-    static DATASIZE: i32 = 100_000_000;
-    static REPEATS: i32 = 10;
+    use std::time::Instant;
 
     fn measurements(datasize: i32) {
         let mut v = Vec::new();
@@ -81,19 +97,22 @@ mod tests {
         test_multithread(repeats, datasize);
     }
 
+    static DATASIZE: i32 = 100_000_000;
+    static REPEATS: i32 = 10;
+
     #[test]
     fn sequential() {
-        unsafe {
-            brug_allocator::BrugStruct::set_mode(0);
-        }
-        seq_test(REPEATS, DATASIZE);
+        set_allocator_mode!(
+            brug_allocator::Allocator::_SYS_,
+            seq_test(REPEATS, DATASIZE)
+        );
     }
     #[test]
     fn multi_thread() {
-        unsafe {
-            brug_allocator::BrugStruct::set_mode(0);
-        }
-        multi_test(REPEATS, DATASIZE);
+        set_allocator_mode!(
+            brug_allocator::Allocator::_SYS_,
+            multi_test(REPEATS, DATASIZE)
+        );
     }
     #[test]
     fn combined() {
