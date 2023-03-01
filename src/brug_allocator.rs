@@ -9,17 +9,17 @@ use std::time::{Duration, Instant};
 // use tcmalloc;
 use std::os::raw::c_void;
 use std::ptr;
-use std::thread;
 
 struct BrugAllocator;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Allocator {
-    _SYS_, //MODE 1
-    //  _TCMALLOC_,
-    _JEMALLOC_, //MODE 2
-    _MIMALLOC_, //MODE 3
-    _MMAP_,     //MODE 4
+    _SYS_,      //MODE 0
+    _JEMALLOC_, //MODE 1
+    _MIMALLOC_, //MODE 2
+    _MMAP_,     //MODE 3
+                // _BRUG_,     //MODE 4
+                //  _TCMALLOC_     //MODE 5
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -35,17 +35,12 @@ static PUD_PAGE_SIZE: usize = 1073741824;
 
 pub struct BrugStruct {
     mapping: Mutex<BTreeMap<usize, Allocdata>>,
-    // total_size: u128,
-    // ptr:AtomicPtr<u8>,
     mode: AtomicU8,
     records: Mutex<[[Duration; 4]; 4]>,
 }
 unsafe impl Sync for BrugStruct {}
 
-#[allow(dead_code)]
 static mut BRUG: BrugStruct = BrugStruct {
-    //could be the problem here?
-    // ptr:AtomicPtr::new(&mut 0),
     mapping: Mutex::new(BTreeMap::new()), //A tree to hold the allocator applied for this particular memory
     mode: AtomicU8::new(0),               //Indicating the Brug current mode
     records: Mutex::new([[Duration::new(0, 0); 4]; 4]), // A 2-d array for holding the records, [size][allocator]
@@ -55,27 +50,27 @@ static mut BRUG: BrugStruct = BrugStruct {
 impl BrugStruct {
     unsafe fn input(&mut self, address: usize, alloc_data: Allocdata) {
         //record the allocator mode
-        self.mapping.lock().unwrap(); //change to try_lock()
+        // self.mapping.lock().unwrap(); //change to try_lock()
         let _tree = self.mapping.get_mut().unwrap();
         _tree.insert(address, alloc_data); //This insert cause the segamentation fault
     }
     unsafe fn suggest(&mut self, ptr: *mut u8, alloc_data: Allocdata) {
         //change the allocator with preference in next reallocation
-        self.mapping.lock().unwrap();
+        // self.mapping.lock().unwrap();
         let _tree = self.mapping.get_mut().unwrap();
         _tree.insert(ptr.clone() as usize, alloc_data); //Insert the value of the PTR
     }
 
     unsafe fn counter_grow(&mut self, old_address: usize, new_address: usize) {
-        self.mapping.lock().unwrap();
+        // self.mapping.lock().unwrap();
         let _tree = self.mapping.get_mut().unwrap();
         let mut _alloc_data: Option<Allocdata>;
 
         let _new_data = match _tree.remove(&old_address) {
-            Some(Allocdata) => {
+            Some(allocdata) => {
                 let _new_data = Allocdata {
-                    allocator: Allocdata.allocator,
-                    counter: Allocdata.counter + 1,
+                    allocator: allocdata.allocator,
+                    counter: allocdata.counter + 1,
                 };
                 _tree.insert(new_address, _new_data);
             }
@@ -91,59 +86,60 @@ impl BrugStruct {
 
     unsafe fn remove(&mut self, ptr: *mut u8) {
         //remove the entry when deallocate
-        self.mapping.lock().unwrap();
+        // self.mapping.lock().unwrap();
         let _tree = self.mapping.get_mut().unwrap();
         let _ptr = ptr.clone() as usize;
-        _tree.remove(&_ptr);
+        match _tree.remove(&_ptr){
+            _ => return,
+        }
     }
 
     fn size_match(size: usize) -> usize {
         // size identifier for 5-level page table 0 -> 4KB -> 2MB -> 1GB -> larger
-        if PTE_PAGE_SIZE < size || size <= PMD_PAGE_SIZE {
+        if PTE_PAGE_SIZE < size && size <= PMD_PAGE_SIZE {
+            return 0;
+        } else if PMD_PAGE_SIZE < size && size <= PUD_PAGE_SIZE {
             return 1;
-        } else if PMD_PAGE_SIZE < size || size <= PUD_PAGE_SIZE {
-            return 2;
         } else if PUD_PAGE_SIZE < size {
-            return 3;
+            return 2;
         } else {
-            return 4;
+            return 3;
         };
     }
 
     unsafe fn record(&mut self, size: usize, time: Duration, allocator: Allocator) {
-        self.records.lock().unwrap();
+        // self.records.lock().unwrap();
         let _size_type = Self::size_match(size);
-        let _allocator_type: usize = match allocator {
-            Allocator::_SYS_ => 1,
-            Allocator::_JEMALLOC_ => 2,
-            Allocator::_MIMALLOC_ => 3,
-            Allocator::_MMAP_ => 4,
-        };
         let record_table = self.records.get_mut().unwrap();
-        record_table[_size_type][_allocator_type] = time;
+        match allocator {
+            Allocator::_SYS_ => record_table[_size_type][0] = time,
+            Allocator::_JEMALLOC_ => record_table[_size_type][1] = time,
+            Allocator::_MIMALLOC_ => record_table[_size_type][2] = time,
+            Allocator::_MMAP_ => record_table[_size_type][3] = time,
+        };
     }
 
     // fn position_max_copy<T: Ord + Copy>(slice: &[T]) -> Option<usize> {
     //     slice.iter().enumerate().max_by_key(|(_, &value)| value).map(|(idx, _)| idx)
     // }
 
-    fn position_max<T: Ord>(slice: &[T]) -> Option<usize> {
+    fn position_min<T: Ord>(slice: &[T]) -> Option<usize> {
         slice
             .iter()
             .enumerate()
-            .max_by(|(_, value0), (_, value1)| value0.cmp(value1))
+            .min_by(|(_, value0), (_, value1)| value0.cmp(value1))
             .map(|(idx, _)| idx)
     }
 
     unsafe fn optimization_mode(&mut self, size: usize) -> Allocator {
         let size_type = Self::size_match(size);
         let record_table = self.records.get_mut().unwrap();
-        let allocator_type = Self::position_max(&record_table[size_type]).unwrap();
+        let allocator_type = Self::position_min(&record_table[size_type]).unwrap();
         let best_allocator = match allocator_type {
-            1 => Allocator::_SYS_,
-            2 => Allocator::_JEMALLOC_,
-            3 => Allocator::_MIMALLOC_,
-            4 => Allocator::_MMAP_,
+            0 => Allocator::_SYS_,
+            1 => Allocator::_JEMALLOC_,
+            2 => Allocator::_MIMALLOC_,
+            3 => Allocator::_MMAP_,
             _ => Allocator::_SYS_, // in case of error, fall back to the system allocator
         };
         best_allocator
@@ -152,27 +148,28 @@ impl BrugStruct {
 
     pub unsafe fn set_mode(mode: i32) {
         match mode {
-            1 => {
+            0 => {
                 //Default Mode, use the _SYS allocator
-                BRUG.mode.store(1, SeqCst);
+                BRUG.mode.store(0, SeqCst);
                 _CURRENT_ = Allocator::_SYS_;
+            }
+            1 => {
+                BRUG.mode.store(1, SeqCst);
+                _CURRENT_ = Allocator::_JEMALLOC_;
             }
             2 => {
                 BRUG.mode.store(2, SeqCst);
-                _CURRENT_ = Allocator::_JEMALLOC_;
+                _CURRENT_ = Allocator::_MIMALLOC_;
             }
             3 => {
                 BRUG.mode.store(3, SeqCst);
-                _CURRENT_ = Allocator::_MIMALLOC_;
+                _CURRENT_ = Allocator::_MMAP_;
             }
             4 => {
                 BRUG.mode.store(4, SeqCst);
-                _CURRENT_ = Allocator::_MMAP_;
+                // _CURRENT_ = Allocator::_SYS_;       //Set Mimalloc as the deafult allocator
             }
-            5 => {
-                BRUG.mode.store(5, SeqCst);
-            }
-            _ => BRUG.mode.store(1, SeqCst),
+            _ => BRUG.mode.store(0, SeqCst),
         }
     }
 
@@ -192,9 +189,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
 
         match _CURRENT_ {
             Allocator::_SYS_ => ret = System.alloc(layout),
-            // Allocator::_TCMALLOC_ => {
-            //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8
-            // }
             Allocator::_MIMALLOC_ => ret = MiMalloc.alloc(layout),
             Allocator::_JEMALLOC_ => ret = Jemalloc.alloc(layout),
             Allocator::_MMAP_ => {
@@ -224,7 +218,9 @@ unsafe impl GlobalAlloc for BrugAllocator {
                     -1 => panic!("madvise_error"),
                     _ => (),
                 }
-            }
+            } // Allocator::_TCMALLOC_ => {
+              //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8
+              // }
         }
 
         if layout.size() > PTE_PAGE_SIZE {
@@ -250,13 +246,12 @@ unsafe impl GlobalAlloc for BrugAllocator {
         BRUG.remove(ptr);
         match _CURRENT_ {
             Allocator::_SYS_ => System.dealloc(ptr, layout),
-            // Allocator::_TCMALLOC_ => tcmalloc::tc_free(ptr as *mut c_void),
             Allocator::_MIMALLOC_ => MiMalloc.dealloc(ptr, layout),
             Allocator::_JEMALLOC_ => Jemalloc.dealloc(ptr, layout),
             Allocator::_MMAP_ => {
                 let addr = ptr as *mut c_void;
                 libc::munmap(addr, layout.size());
-            }
+            } // Allocator::_TCMALLOC_ => tcmalloc::tc_free(ptr as *mut c_void),
         }
     }
 
@@ -269,10 +264,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
 
         match _CURRENT_ {
             Allocator::_SYS_ => ret = System.realloc(ptr, layout, new_size),
-            // Allocator::_TCMALLOC_ => {
-            //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8;
-            //     std::ptr::copy_nonoverlapping(ptr, ret, layout.size());
-            // }
             Allocator::_MIMALLOC_ => ret = MiMalloc.realloc(ptr, layout, new_size),
             Allocator::_JEMALLOC_ => ret = Jemalloc.realloc(ptr, layout, new_size),
             Allocator::_MMAP_ => {
@@ -286,7 +277,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
 
                 ret = libc::mremap(old_address, layout.size(), new_size, libc::MREMAP_MAYMOVE)
                     as *mut u8
-            }
+            } // Allocator::_TCMALLOC_ => {
+              //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8;
+              //     std::ptr::copy_nonoverlapping(ptr, ret, layout.size());
+              // }
         }
 
         if new_size < PTE_PAGE_SIZE {
@@ -309,87 +303,3 @@ unsafe impl GlobalAlloc for BrugAllocator {
         ret
     }
 }
-
-fn measurements(datasize: i32) {
-    let mut v = Vec::new();
-
-    let start = Instant::now();
-
-    for n in 0..datasize {
-        v.push(n);
-        // println!("{} get pushed", n);
-    }
-
-    let duration = start.elapsed();
-
-    println!("Time measured is: {:?}", duration);
-}
-
-fn test_sequential(numbers: i32, datasize: i32) {
-    for _n in 0..numbers {
-        measurements(datasize);
-    }
-}
-
-fn test_multithread(numbers: i32, datasize: i32) {
-    let threads: Vec<_> = (0..numbers)
-        .map(|_i| {
-            thread::spawn(move || {
-                measurements(datasize);
-            })
-        })
-        .collect();
-
-    for handle in threads {
-        handle.join().unwrap();
-    }
-}
-
-pub fn seq_test(repeats: i32, datasize: i32) {
-    println!(
-        "Testing {:?} sequential with {} integer push and {} repetations",
-        _CURRENT_, datasize, repeats
-    );
-
-    test_sequential(repeats, datasize);
-}
-
-pub fn multi_test(repeats: i32, datasize: i32) {
-    println!(
-        "Testing {:?} multi-thread with {} integer push and {} repetations",
-        _CURRENT_, datasize, repeats
-    );
-
-    test_multithread(repeats, datasize);
-}
-
-pub fn combine_test(repeats: i32, datasize: i32) {
-    println!(
-        "Testing {:?} sequential with {} integer push and {} repetations",
-        _CURRENT_, datasize, repeats
-    );
-
-    test_sequential(repeats, datasize);
-
-    println!(
-        "Testing {:?} multi-thread with {} integer push and {} repetations",
-        _CURRENT_, datasize, repeats
-    );
-
-    test_multithread(repeats, datasize);
-}
-
-// fn main() {
-//     let repeats = 10;
-
-//     println!(
-//         "Testing {:?} sequential with {} integer push and {} repetations",
-//         _CURRENT_, DATASIZE, repeats
-//     );
-
-//     test_sequential(repeats);
-
-//     // println!("Testing {:?} multi-thread with {} integer push and {} repetations",_CURRENT_,DATASIZE,repeats);
-
-//     // test_multithread(repeats);
-// }
