@@ -3,7 +3,7 @@ use jemallocator::Jemalloc;
 use mimalloc::MiMalloc;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::collections::BTreeMap;
-use std::sync::atomic::AtomicU8;
+use std::sync::atomic::{AtomicU8, Ordering::SeqCst};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 // use tcmalloc;
@@ -14,12 +14,12 @@ use std::thread;
 struct BrugAllocator;
 
 #[derive(Debug, Clone, Copy)]
-enum Allocator {
-    _SYS_,
+pub enum Allocator {
+    _SYS_, //MODE 1
     //  _TCMALLOC_,
-    _JEMALLOC_,
-    _MIMALLOC_,
-    _MMAP_,
+    _JEMALLOC_, //MODE 2
+    _MIMALLOC_, //MODE 3
+    _MMAP_,     //MODE 4
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -28,7 +28,7 @@ struct Allocdata {
     counter: i32,
 }
 
-static _CURRENT_: Allocator = Allocator::_JEMALLOC_;
+static mut _CURRENT_: Allocator = Allocator::_SYS_;
 static PTE_PAGE_SIZE: usize = 4096;
 static PMD_PAGE_SIZE: usize = 2097152;
 static PUD_PAGE_SIZE: usize = 1073741824;
@@ -69,24 +69,24 @@ impl BrugStruct {
     unsafe fn counter_grow(&mut self, old_address: usize, new_address: usize) {
         self.mapping.lock().unwrap();
         let _tree = self.mapping.get_mut().unwrap();
-        let mut _alloc_data : Option<Allocdata>;
+        let mut _alloc_data: Option<Allocdata>;
 
-        let _new_data = match _tree.remove(&old_address){
+        let _new_data = match _tree.remove(&old_address) {
             Some(Allocdata) => {
                 let _new_data = Allocdata {
-                allocator: Allocdata.allocator,
-                counter: Allocdata.counter + 1,
-            };
-            _tree.insert(new_address, _new_data);
-        },
+                    allocator: Allocdata.allocator,
+                    counter: Allocdata.counter + 1,
+                };
+                _tree.insert(new_address, _new_data);
+            }
             None => {
                 let _new_data = Allocdata {
                     allocator: Allocator::_SYS_,
                     counter: 1,
                 };
                 _tree.insert(new_address, _new_data);
-            },
-        }; 
+            }
+        };
     }
 
     unsafe fn remove(&mut self, ptr: *mut u8) {
@@ -149,6 +149,36 @@ impl BrugStruct {
         best_allocator
     } //a function to adjust the allocator according to the data collected
       //check the number and see which one cloud work better
+
+    pub unsafe fn set_mode(mode: i32) {
+        match mode {
+            1 => {
+                //Default Mode, use the _SYS allocator
+                BRUG.mode.store(1, SeqCst);
+                _CURRENT_ = Allocator::_SYS_;
+            }
+            2 => {
+                BRUG.mode.store(2, SeqCst);
+                _CURRENT_ = Allocator::_JEMALLOC_;
+            }
+            3 => {
+                BRUG.mode.store(3, SeqCst);
+                _CURRENT_ = Allocator::_MIMALLOC_;
+            }
+            4 => {
+                BRUG.mode.store(4, SeqCst);
+                _CURRENT_ = Allocator::_MMAP_;
+            }
+            5 => {
+                BRUG.mode.store(5, SeqCst);
+            }
+            _ => BRUG.mode.store(1, SeqCst),
+        }
+    }
+
+    unsafe fn get_allocator() -> u8 {
+        BRUG.mode.load(SeqCst)
+    }
 }
 
 #[global_allocator]
@@ -236,7 +266,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
         let ret: *mut u8;
         let _old_addr = ptr.clone() as usize;
         let _start = Instant::now();
-        
+
         match _CURRENT_ {
             Allocator::_SYS_ => ret = System.realloc(ptr, layout, new_size),
             // Allocator::_TCMALLOC_ => {
