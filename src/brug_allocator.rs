@@ -169,7 +169,7 @@ impl BrugStruct {
             //     BRUG.mode.store(4, SeqCst);
             //     // current_alloc= Allocator::_SYS_;
             // }
-            _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
+            // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
         }
     }
 

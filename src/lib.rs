@@ -35,7 +35,6 @@ mod tests {
 
         for n in 0..datasize {
             v.push(n);
-            // println!("{} get pushed", n);
         }
 
         let duration = start.elapsed();
