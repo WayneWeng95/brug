@@ -96,18 +96,22 @@ mod tests {
         test_multithread(repeats, datasize);
     }
 
-    static DATASIZE: i32 = 100_000_000;
-    static REPEATS: i32 = 10;
+    static DATASIZE: i32 = 1_000_000_000;
+    static REPEATS: i32 = 5;
 
     #[test]
     fn sequential() {
         set_allocator_mode!(
-            brug_allocator::Allocator::_SYS_,
+            brug_allocator::Allocator::_BrugPredef_,
             seq_test(REPEATS, DATASIZE)
         );
     }
     #[test]
     fn multi_thread() {
+        set_allocator_mode!(
+            brug_allocator::Allocator::_MMAP_,
+            multi_test(REPEATS, DATASIZE)
+        );
         set_allocator_mode!(
             brug_allocator::Allocator::_SYS_,
             multi_test(REPEATS, DATASIZE)
