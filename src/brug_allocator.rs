@@ -171,7 +171,7 @@ impl BrugStruct {
             }
             Allocator::_BrugPredef_ => {
                 BRUG.mode.store(4, SeqCst);
-                BRUG.current_alloc = Allocator::_MIMALLOC_;
+                BRUG.current_alloc = Allocator::_BrugPredef_;
             } // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
         }
     }
@@ -325,7 +325,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
             }
             Allocator::_BrugPredef_ => {
                 //Mechanism tweaking                What happens here
-                let value = layout.size() / PTE_PAGE_SIZE;
+                let value = new_size / PTE_PAGE_SIZE;
                 match value {
                     0 => ret = Jemalloc.realloc(ptr, layout, new_size),
                     1..=6 => {
