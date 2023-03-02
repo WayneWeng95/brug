@@ -18,9 +18,14 @@ pub enum Allocator {
     _MIMALLOC_, //MODE 2
     _MMAP_,     //MODE 3
     _BrugPredef_, //MODE 4
-                // _BRUG_Auto,  //MODE 5
+                // _BrugOpt_,  //MODE 5
                 //  _TCMALLOC_,     //MODE 6
 }
+
+// pub struct BrugFix {
+//     switch1: usize,
+//     switch2: usize,
+// }
 
 #[derive(Debug, Clone, Copy)]
 struct Allocdata {
@@ -31,8 +36,8 @@ struct Allocdata {
 
 static DEFAULT_ALLOCATOR: Allocator = Allocator::_SYS_; //Current Set as the _SYS_ allocator for default
 static PTE_PAGE_SIZE: usize = 4096; //4 KiB
-static PMD_PAGE_SIZE: usize = 2097152; //2 MiB
-                                       // static PUD_PAGE_SIZE: usize = 1073741824; //1 GiB
+                                    // static PMD_PAGE_SIZE: usize = 2097152; //2 MiB
+                                    // static PUD_PAGE_SIZE: usize = 1073741824; //1 GiB
 
 pub struct BrugStruct {
     mapping: Mutex<BTreeMap<usize, Allocdata>>,
@@ -252,8 +257,8 @@ unsafe impl GlobalAlloc for BrugAllocator {
                 let _times = layout.size() / PTE_PAGE_SIZE as usize;
                 match _times {
                     0 => ret = Jemalloc.alloc(layout),
-                    1..=4 => ret = System.alloc(layout),
-                    5..=20 => ret = BrugStruct::mem_mmap(layout),
+                    1..=6 => ret = System.alloc(layout),
+                    7..=20 => ret = BrugStruct::mem_mmap(layout),
                     _ => ret = System.alloc(layout),
                 }
             } // Allocator::_TCMALLOC_ => {
@@ -291,8 +296,8 @@ unsafe impl GlobalAlloc for BrugAllocator {
                 let _times = layout.size() / PTE_PAGE_SIZE as usize;
                 match _times {
                     0 => MiMalloc.dealloc(ptr, layout),
-                    1..=4 => System.dealloc(ptr, layout),
-                    5..=20 => {
+                    1..=6 => System.dealloc(ptr, layout),
+                    7..=20 => {
                         let addr = ptr as *mut c_void;
                         libc::munmap(addr, layout.size());
                     }
@@ -319,22 +324,18 @@ unsafe impl GlobalAlloc for BrugAllocator {
                     as *mut u8
             }
             Allocator::_BrugPredef_ => {
-                //Mechanism tweaking
-                let size: usize = match layout.size() >= PMD_PAGE_SIZE {
-                    true => (layout.size() + PMD_PAGE_SIZE) / PTE_PAGE_SIZE,
-                    false => layout.size() / PTE_PAGE_SIZE,
-                };
-                match size {
-                    //Mechanism design
+                //Mechanism tweaking                What happens here
+                let value = layout.size() / PTE_PAGE_SIZE;
+                match value {
                     0 => ret = Jemalloc.realloc(ptr, layout, new_size),
-                    1..=4 => {
-                        //Check the previous
+                    1..=6 => {
                         ret = System.realloc(ptr, layout, new_size);
                     }
-                    5..=20 => {
+                    7..=20 => {
                         let old_address = ptr as *mut c_void;
-                        ret = libc::mremap(old_address, layout.size(), size, libc::MREMAP_MAYMOVE)
-                            as *mut u8
+                        ret =
+                            libc::mremap(old_address, layout.size(), new_size, libc::MREMAP_MAYMOVE)
+                                as *mut u8
                     }
                     _ => ret = System.realloc(ptr, layout, new_size),
                 }

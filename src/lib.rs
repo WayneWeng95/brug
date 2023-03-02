@@ -24,7 +24,7 @@ macro_rules! set_allocator_mode {
 
 #[cfg(test)]
 mod tests {
-    use crate::brug_allocator;
+    use crate::{brug_allocator, Allocator};
     use std::thread;
     use std::time::Instant;
 
@@ -62,19 +62,19 @@ mod tests {
         }
     }
 
-    fn seq_test(repeats: i32, datasize: i32) {
+    fn seq_test(repeats: i32, datasize: i32, allocator: Allocator) {
         println!(
-            "Testing sequential with {} integer push and {} repetations",
-            datasize, repeats
+            "Testing sequential in plocicy {:?} with {} integer push and {} repetations",
+            allocator, datasize, repeats
         );
 
         test_sequential(repeats, datasize);
     }
 
-    fn multi_test(repeats: i32, datasize: i32) {
+    fn multi_test(repeats: i32, datasize: i32, allocator: Allocator) {
         println!(
-            "Testing multi-thread with {} integer push and {} repetations",
-            datasize, repeats
+            "Testing multi-thread in plocicy {:?} with {} integer push and {} repetations",
+            allocator, datasize, repeats
         );
 
         test_multithread(repeats, datasize);
@@ -96,26 +96,19 @@ mod tests {
         test_multithread(repeats, datasize);
     }
 
-    static DATASIZE: i32 = 1_000_000_000;
+    static DATASIZE: i32 = 100_000_000;
     static REPEATS: i32 = 5;
 
     #[test]
     fn sequential() {
-        set_allocator_mode!(
-            brug_allocator::Allocator::_BrugPredef_,
-            seq_test(REPEATS, DATASIZE)
-        );
+        let allocator = brug_allocator::Allocator::_BrugPredef_;
+        set_allocator_mode!(allocator, seq_test(REPEATS, DATASIZE, allocator));
     }
     #[test]
     fn multi_thread() {
-        set_allocator_mode!(
-            brug_allocator::Allocator::_MMAP_,
-            multi_test(REPEATS, DATASIZE)
-        );
-        set_allocator_mode!(
-            brug_allocator::Allocator::_SYS_,
-            multi_test(REPEATS, DATASIZE)
-        );
+        // let allocator = brug_allocator::Allocator::_JEMALLOC_;
+        let allocator = brug_allocator::Allocator::_BrugPredef_;
+        set_allocator_mode!(allocator, multi_test(REPEATS, DATASIZE, allocator));
     }
     #[test]
     fn combined() {
