@@ -101,7 +101,7 @@ mod tests {
 
     #[test]
     fn sequential() {
-        let allocator = brug_allocator::Allocator::_JEMALLOC_;
+        let allocator = brug_allocator::Allocator::_BrugPredef_;
         set_allocator_mode!(allocator, seq_test(REPEATS, DATASIZE, allocator));
     }
     #[test]

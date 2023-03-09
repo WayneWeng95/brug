@@ -18,7 +18,7 @@ pub enum Allocator {
     _JEMALLOC_,   //MODE 1
     _MIMALLOC_,   //MODE 2
     _MMAP_,       //MODE 3
-    _BrugPredef_, //MODE 4
+    _BrugPredef_, //MODE 4              //debug this mode
     _BrugCustom_, //MODE 5
                   // _BrugOpt_,  //MODE 6
                   //  _TCMALLOC_,     //MODE 7
@@ -251,6 +251,7 @@ impl BrugStruct {
     unsafe fn brug_template_mode(&mut self, size: usize, mode: Allocator) -> Allocator {
         //predef template
         let _times = size / PTE_PAGE_SIZE;
+        println!("{}",_times);
         let ret: Allocator = match mode {
             Allocator::_BrugPredef_ => match _times {
                 _times if BRUG_TEMPLATE.sys.contains(&_times) => Allocator::_SYS_,
