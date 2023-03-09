@@ -10,6 +10,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "mimalloc",
+ "once_cell",
  "tcmalloc",
 ]
 
@@ -69,6 +70,12 @@ checksum = "9dcb174b18635f7561a0c6c9fc2ce57218ac7523cf72c50af80e2d79ab8f3ba1"
 dependencies = [
  "libmimalloc-sys",
 ]
+
+[[package]]
+name = "once_cell"
+version = "1.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
 name = "tcmalloc"
