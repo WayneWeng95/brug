@@ -19,12 +19,16 @@ pub enum Allocator {
     _MIMALLOC_,   //MODE 2
     _MMAP_,       //MODE 3
     _BrugPredef_, //MODE 4              //debug this mode
-    _BrugCustom_, //MODE 5
+    _BrugCustom_, //MODE 5              //debug this mode
                   // _BrugOpt_,  //MODE 6
                   //  _TCMALLOC_,     //MODE 7
 }
 
 pub struct BrugTemplate {
+    //This is the data structure for using the Brug mode. Each allocator is called when it match the size.
+    //The useage of Vector like this: input usize numbers into the vector of an allocator
+    //The size boundary is calcualted following 4096 Bytes * (2 ^ n).
+    //For example, if we set the n = 3 for jemalloc, the reallocation happens with newsize from 32 KiB to 64 KiB will use jemalloc
     sys: Vec<usize>,
     jemalloc: Vec<usize>,
     mimalloc: Vec<usize>,
@@ -32,6 +36,7 @@ pub struct BrugTemplate {
 }
 
 static BRUG_TEMPLATE: Lazy<BrugTemplate> = Lazy::new(|| {
+    //This is the default tempalte. We use the measurement of vector pushing and found this is the best performacne on our test machine
     let m: BrugTemplate = BrugTemplate {
         sys: Vec::from([1, 2, 3, 4, 5, 6]),
         jemalloc: Vec::from([0]),
@@ -43,6 +48,7 @@ static BRUG_TEMPLATE: Lazy<BrugTemplate> = Lazy::new(|| {
 });
 
 static mut CUSTOM_TEMPLATE: BrugTemplate = BrugTemplate {
+    //The customable template for user to filling. The mode need to set as _BrugCustom_
     sys: Vec::new(),
     jemalloc: Vec::new(),
     mimalloc: Vec::new(),
@@ -134,13 +140,23 @@ impl BrugStruct {
 
     unsafe fn record(&mut self, size: usize, time: Duration, allocator: Allocator) {
         // A function to record the reallocation speed, according the speed, make the adjustment
+        // New record will combine with old records, after certain amout of running, the best one will be used
+        // The current states incurs a lot of potentional overhead, think about this approach
         let _size_type = Self::size_match(size);
         let record_table = self.records.get_mut().unwrap();
         match allocator {
-            Allocator::_SYS_ => record_table[_size_type][0] = time,
-            Allocator::_JEMALLOC_ => record_table[_size_type][1] = time,
-            Allocator::_MIMALLOC_ => record_table[_size_type][2] = time,
-            Allocator::_MMAP_ => record_table[_size_type][3] = time,
+            Allocator::_SYS_ => {
+                record_table[_size_type][0] = (time + record_table[_size_type][0]) / 2
+            }
+            Allocator::_JEMALLOC_ => {
+                record_table[_size_type][1] = (time + record_table[_size_type][0]) / 2
+            }
+            Allocator::_MIMALLOC_ => {
+                record_table[_size_type][2] = (time + record_table[_size_type][0]) / 2
+            }
+            Allocator::_MMAP_ => {
+                record_table[_size_type][3] = (time + record_table[_size_type][0]) / 2
+            }
             _ => (),
         };
     }
@@ -224,34 +240,34 @@ impl BrugStruct {
         };
     }
 
-    unsafe fn mem_mmap(layout: Layout) -> *mut u8 {
-        const ADDR: *mut c_void = ptr::null_mut::<c_void>();
-        let ret: *mut u8;
-        ret = libc::mmap(
-            ADDR,
-            layout.size(),
-            libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
-            -1,
-            0,
-        ) as *mut u8;
+    // unsafe fn mem_mmap(layout: Layout) -> *mut u8 {
+    //     const ADDR: *mut c_void = ptr::null_mut::<c_void>();
+    //     let ret: *mut u8;
+    //     ret = libc::mmap(
+    //         ADDR,
+    //         layout.size(),
+    //         libc::PROT_READ | libc::PROT_WRITE,
+    //         libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
+    //         -1,
+    //         0,
+    //     ) as *mut u8;
 
-        match libc::madvise(
-            //Tweaking this madvise part
-            ret as *mut c_void,
-            layout.size(),
-            libc::MADV_WILLNEED | libc::MADV_DONTFORK | libc::MADV_HUGEPAGE,
-        ) {
-            -1 => panic!("madvise_error"),
-            _ => (),
-        }
-        ret
-    }
+    //     match libc::madvise(
+    //         //Tweaking this madvise part
+    //         ret as *mut c_void,
+    //         layout.size(),
+    //         libc::MADV_WILLNEED | libc::MADV_DONTFORK | libc::MADV_HUGEPAGE,
+    //     ) {
+    //         -1 => panic!("madvise_error"),
+    //         _ => (),
+    //     }
+    //     ret
+    // }
 
     unsafe fn brug_template_mode(&mut self, size: usize, mode: Allocator) -> Allocator {
         //predef template
         let _times = size / PTE_PAGE_SIZE;
-        println!("{}",_times);
+        println!("{}", _times);
         let ret: Allocator = match mode {
             Allocator::_BrugPredef_ => match _times {
                 _times if BRUG_TEMPLATE.sys.contains(&_times) => Allocator::_SYS_,
@@ -301,6 +317,7 @@ static GLOBAL: BrugAllocator = BrugAllocator;
 
 unsafe impl GlobalAlloc for BrugAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        //allocation function
         let ret: *mut u8;
 
         match BRUG.current_alloc {
@@ -377,6 +394,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        //Free function
         BRUG.remove(ptr);
 
         match BRUG.current_alloc {
@@ -405,6 +423,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
     // unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 { ... } //calloc
 
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        //realloc function
         let ret: *mut u8;
         let _old_addr = ptr.clone() as usize;
         let _start = Instant::now();
@@ -439,6 +458,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
         }
 
         if new_size < PTE_PAGE_SIZE {
+            //check the mechanism for this one
             if layout.size() > PTE_PAGE_SIZE {
                 BRUG.remove(ptr);
             }

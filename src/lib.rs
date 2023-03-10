@@ -4,7 +4,7 @@ mod brug_allocator;
 #[cfg(unix)]
 pub use crate::brug_allocator::*;
 
-#[macro_export]
+#[macro_export]     //The macro to insert the code block and allocator sign
 macro_rules! set_allocator_mode {
     ( $mand_1:expr, $( $x:expr ),* ) => {
         {
@@ -28,7 +28,7 @@ mod tests {
     use std::thread;
     use std::time::Instant;
 
-    fn measurements(datasize: i32) {
+    fn measurements(datasize: i32) {        //Measurement using the vector push
         let mut v = Vec::new();
 
         let start = Instant::now();
@@ -42,13 +42,13 @@ mod tests {
         println!("Time measured is: {:?}", duration);
     }
 
-    fn test_sequential(numbers: i32, datasize: i32) {
+    fn test_sequential(numbers: i32, datasize: i32) {       //Sequential operations
         for _n in 0..numbers {
             measurements(datasize);
         }
     }
 
-    fn test_multithread(numbers: i32, datasize: i32) {
+    fn test_multithread(numbers: i32, datasize: i32) {      //Multi-thread operations
         let threads: Vec<_> = (0..numbers)
             .map(|_i| {
                 thread::spawn(move || {
@@ -62,7 +62,7 @@ mod tests {
         }
     }
 
-    fn seq_test(repeats: i32, datasize: i32, allocator: Allocator) {
+    fn seq_test(repeats: i32, datasize: i32, allocator: Allocator) {       
         println!(
             "Testing sequential in plocicy {:?} with {} integer push and {} repetations",
             allocator, datasize, repeats
@@ -101,8 +101,8 @@ mod tests {
 
     #[test]
     fn sequential() {
-        let allocator = brug_allocator::Allocator::_BrugPredef_;
-        set_allocator_mode!(allocator, seq_test(REPEATS, DATASIZE, allocator));
+        let allocator = brug_allocator::Allocator::_SYS_;       //Create the flag
+        set_allocator_mode!(allocator, seq_test(REPEATS, DATASIZE, allocator)); //Use the marco
     }
     #[test]
     fn multi_thread() {
