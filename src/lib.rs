@@ -108,7 +108,8 @@ mod tests {
         //     brug_allocator::BRUG_TEMPLATE.mmap = (false, 0, 0);      //Changing of the template variable
         // }
         // let allocator = brug_allocator::Allocatormode::_SYS_;       //Create the flag
-        let allocator = brug_allocator::Allocatormode::_JEMALLOC_; //Create the flag
+        let allocator = brug_allocator::Allocatormode::_BrugAutoOpt_;       //Create the flag
+        // let allocator = brug_allocator::Allocatormode::_JEMALLOC_; //Create the flag
         set_allocator_mode!(allocator, { seq_test(REPEATS, DATASIZE, allocator) });
         //Use the marco
     }

@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 // use tcmalloc;
-use byte_unit::{GIBIBYTE, KIBIBYTE, MEBIBYTE};
+use byte_unit::{GIBIBYTE, KIBIBYTE}; //MEBIBYTE
 use std::os::raw::c_void;
 use std::ptr;
 
@@ -19,7 +19,7 @@ pub enum Allocatormode {
     _MIMALLOC_, //MODE 2
     _MMAP_,     //MODE 3
     _BrugTemplate_, //MODE 4
-                // _BrugAutoOpt_,  //MODE 5
+    _BrugAutoOpt_,  //MODE 5
                 // _BrugMonitor_,  //MODE 6
                 //  _TCMALLOC_,    //MODE 7
 }
@@ -33,7 +33,7 @@ pub struct BrugTemplate {
     pub mmap: (bool, u128, u128),
 }
 
-pub static mut BRUG_TEMPLATE: BrugTemplate = BrugTemplate {
+pub static mut BRUG_TEMPLATE: BrugTemplate = BrugTemplate {     //The default need bit tweaking
     //This is the default template. It is set mutable so that user can make changes from outside.
     //The cargo make sure the user need to understand the unsage{} before using this
     //Becareful with the tweaking, the size not cover will be set as system allocator, this could bring extra copy
@@ -59,7 +59,6 @@ pub struct BrugStruct {
     mapping: Mutex<BTreeMap<usize, Allocdata>>,
     records: Mutex<[[Duration; 4]; 21]>,
     current_alloc: Allocatormode,
-    // Burg_Template: BrugTemplate,
 }
 unsafe impl Sync for BrugStruct {}
 
@@ -192,7 +191,10 @@ impl BrugStruct {
             }
             Allocatormode::_BrugTemplate_ => {
                 BRUG.current_alloc = Allocatormode::_BrugTemplate_;
-            } // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
+            }Allocatormode::_BrugAutoOpt_ =>{
+                BRUG.current_alloc = Allocatormode::_BrugAutoOpt_;
+            } 
+            // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
         }
     }
 
@@ -332,7 +334,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
                     }
                     _ => ret = System.alloc(layout),
                 }
-            } // Allocatormode::_TCMALLOC_ => {
+            }Allocatormode::_BrugAutoOpt_ =>{
+                ret = System.alloc(layout)
+            }
+             // Allocatormode::_TCMALLOC_ => {
               //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8
               // }
         }
@@ -374,6 +379,9 @@ unsafe impl GlobalAlloc for BrugAllocator {
                 }
                 _ => (),
             },
+            Allocatormode::_BrugAutoOpt_ =>{
+                System.dealloc(ptr, layout)
+            }
         }
     }
 
@@ -446,9 +454,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
                     };
                     std::ptr::copy_nonoverlapping(ptr, ret, layout.size());
                 }
-
-                //Mechanism tweaking                What happens here
-            } // Allocatormode::_TCMALLOC_ => {
+            } Allocatormode::_BrugAutoOpt_ =>{
+                ret = System.realloc(ptr, layout, new_size)
+            } 
+            // Allocatormode::_TCMALLOC_ => {
               //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8;
               //     std::ptr::copy_nonoverlapping(ptr, ret, layout.size());
               // }
