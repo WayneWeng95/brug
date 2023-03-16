@@ -19,8 +19,9 @@ pub enum Allocatormode {
     _MIMALLOC_, //MODE 2
     _MMAP_,     //MODE 3
     _BrugTemplate_, //MODE 4
-                // _BrugOpt_,  //MODE 5
-                //  _TCMALLOC_,     //MODE 6
+                // _BrugAutoOpt_,  //MODE 5
+                // _BrugMonitor_,  //MODE 6
+                //  _TCMALLOC_,    //MODE 7
 }
 
 pub struct BrugTemplate {
@@ -35,6 +36,7 @@ pub struct BrugTemplate {
 pub static mut BRUG_TEMPLATE: BrugTemplate = BrugTemplate {
     //This is the default template. It is set mutable so that user can make changes from outside.
     //The cargo make sure the user need to understand the unsage{} before using this
+    //Becareful with the tweaking, the size not cover will be set as system allocator, this could bring extra copy
     sys: (true, 4 * KIBIBYTE, 64 * KIBIBYTE),
     jemalloc: (true, 0, 4 * KIBIBYTE),
     mimalloc: (false, 0, 0),
@@ -452,18 +454,20 @@ unsafe impl GlobalAlloc for BrugAllocator {
               // }
         }
 
-        if new_size < PTE_PAGE_SIZE {
-            //Using for the tree parts
-            //check the mechanism for this one
-            if layout.size() > PTE_PAGE_SIZE {
-                BRUG.remove(ptr);
-            }
-        } else {
-            let _ret = ret.clone() as usize;
-            let _duration = _start.elapsed();
-            BRUG.counter_grow(_old_addr, _ret);
-            BRUG.record(layout.size(), _duration, BRUG.current_alloc);
-        }
+        // if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ {     //The tree mode only deploy in the Opt mode
+        //     if new_size < PTE_PAGE_SIZE {
+        //         //Using for the tree parts
+        //         //check the mechanism for this one
+        //         if layout.size() > PTE_PAGE_SIZE {
+        //             BRUG.remove(ptr);
+        //         }
+        //     } else {
+        //         let _ret = ret.clone() as usize;
+        //         let _duration = _start.elapsed();
+        //         BRUG.counter_grow(_old_addr, _ret);
+        //         BRUG.record(layout.size(), _duration, BRUG.current_alloc);
+        //     }
+        // }
 
         if ret.is_null() {
             panic!("Reallocae_error");
