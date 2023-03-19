@@ -66,6 +66,7 @@ mod tests {
     }
 
     fn seq_test(repeats: i64, datasize: i64, allocator: Allocatormode) {
+        //Testing caller for sequential
         println!(
             "Testing sequential in plocicy {:?} with {} integer push and {} repetations",
             allocator, datasize, repeats
@@ -75,6 +76,7 @@ mod tests {
     }
 
     fn multi_test(repeats: i64, datasize: i64, allocator: Allocatormode) {
+        //Testing call for multi-thread
         println!(
             "Testing multi-thread in plocicy {:?} with {} integer push and {} repetations",
             allocator, datasize, repeats
@@ -84,6 +86,7 @@ mod tests {
     }
 
     fn combine_test(repeats: i64, datasize: i64) {
+        //Testing call for both
         println!(
             "Testing sequential with {} integer push and {} repetations",
             datasize, repeats
@@ -99,6 +102,17 @@ mod tests {
         test_multithread(repeats, datasize);
     }
 
+    use arrow::{array,record_batch};
+    use std::sync;
+    fn arrow_functional() {     //A simple arrow test to testify functionality
+        println!("Arrow test");
+        let col_1 = sync::Arc::new(array::Int32Array::from_iter([1, 2, 3])) as _;
+        let col_2 = sync::Arc::new(array::Float32Array::from_iter([1., 6.3, 4.])) as _;
+
+        let batch = record_batch::RecordBatch::try_from_iter([("col1", col_1), ("col_2", col_2)]).unwrap();
+        println!("{:?}",batch);
+    }
+
     static DATASIZE: i64 = 100_000_000;
     static REPEATS: i64 = 5;
 
@@ -108,9 +122,10 @@ mod tests {
         //     brug_allocator::BRUG_TEMPLATE.mmap = (false, 0, 0);      //Changing of the template variable
         // }
         // let allocator = brug_allocator::Allocatormode::_SYS_;       //Create the flag
-        let allocator = brug_allocator::Allocatormode::_BrugAutoOpt_;       //Create the flag
-        // let allocator = brug_allocator::Allocatormode::_JEMALLOC_; //Create the flag
+        let allocator = brug_allocator::Allocatormode::_BrugAutoOpt_; //Create the flag
+                                                                      // let allocator = brug_allocator::Allocatormode::_JEMALLOC_; //Create the flag
         set_allocator_mode!(allocator, { seq_test(REPEATS, DATASIZE, allocator) });
+        // set_allocator_mode!(allocator, { arrow_functional() });
         //Use the marco
     }
     #[test]

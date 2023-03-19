@@ -14,14 +14,14 @@ struct BrugAllocator;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Allocatormode {
-    _SYS_,      //MODE 0
-    _JEMALLOC_, //MODE 1
-    _MIMALLOC_, //MODE 2
-    _MMAP_,     //MODE 3
+    _SYS_,          //MODE 0
+    _JEMALLOC_,     //MODE 1
+    _MIMALLOC_,     //MODE 2
+    _MMAP_,         //MODE 3
     _BrugTemplate_, //MODE 4
     _BrugAutoOpt_,  //MODE 5
-                // _BrugMonitor_,  //MODE 6
-                //  _TCMALLOC_,    //MODE 7
+                    // _BrugMonitor_,  //MODE 6
+                    //  _TCMALLOC_,    //MODE 7
 }
 
 pub struct BrugTemplate {
@@ -33,7 +33,8 @@ pub struct BrugTemplate {
     pub mmap: (bool, u128, u128),
 }
 
-pub static mut BRUG_TEMPLATE: BrugTemplate = BrugTemplate {     //The default need bit tweaking
+pub static mut BRUG_TEMPLATE: BrugTemplate = BrugTemplate {
+    //The default need bit tweaking
     //This is the default template. It is set mutable so that user can make changes from outside.
     //The cargo make sure the user need to understand the unsage{} before using this
     //Becareful with the tweaking, the size not cover will be set as system allocator, this could bring extra copy
@@ -102,15 +103,6 @@ impl BrugStruct {
                 _tree.insert(new_address, _new_data);
             }
         };
-    }
-
-    unsafe fn remove(&mut self, ptr: *mut u8) {
-        //remove the entry when deallocate
-        let _tree = self.mapping.get_mut().unwrap();
-        let _ptr = ptr.clone() as usize;
-        match _tree.remove(&_ptr) {
-            _ => return,
-        }
     }
 
     fn size_match(size: usize) -> usize {
@@ -191,10 +183,10 @@ impl BrugStruct {
             }
             Allocatormode::_BrugTemplate_ => {
                 BRUG.current_alloc = Allocatormode::_BrugTemplate_;
-            }Allocatormode::_BrugAutoOpt_ =>{
+            }
+            Allocatormode::_BrugAutoOpt_ => {
                 BRUG.current_alloc = Allocatormode::_BrugAutoOpt_;
-            } 
-            // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
+            } // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
         }
     }
 
@@ -205,16 +197,16 @@ impl BrugStruct {
 
     unsafe fn get_allocator(&mut self, ptr: *mut u8) -> Allocatormode {
         //take a look later
-        //Get the current mode
+        //Get the current mode, remove the entry
         let _tree = self.mapping.get_mut().unwrap();
         let _ptr = ptr.clone() as usize;
 
-        let _new_data = match _tree.get(&_ptr) {
+        let _new_data = match _tree.remove(&_ptr) {
             Some(allocdata) => {
                 return allocdata.allocator;
             }
             None => {
-                return Allocatormode::_JEMALLOC_;
+                return Allocatormode::_SYS_;
             }
         };
     }
@@ -247,30 +239,10 @@ impl BrugStruct {
             ret = Allocatormode::_SYS_;
         }
 
+        // print!("{:?}",ret);
+
         ret
     }
-
-    // unsafe fn realloc_mode(&mut self, ptr: usize, new_size: usize) -> (i32, i32) {       //need to tweak this
-    //     let _tree = self.mapping.get_mut().unwrap();
-    //     let mut _alloc_data: Option<Allocdata>;
-
-    //     let _new_data = match _tree.remove(&ptr) {
-    //         Some(allocdata) => {
-    //             let _new_data = Allocdata {
-    //                 allocator: allocdata.allocator,
-    //                 counter: allocdata.counter + 1,
-    //             };
-    //             _tree.insert(new_address, _new_data);
-    //         }
-    //         None => {
-    //             let _new_data = Allocdata {
-    //                 allocator: BRUG.current_alloc,
-    //                 counter: 1,
-    //             };
-    //             _tree.insert(new_address, _new_data);
-    //         }
-    //     };
-    // }
 }
 
 #[global_allocator]
@@ -334,15 +306,17 @@ unsafe impl GlobalAlloc for BrugAllocator {
                     }
                     _ => ret = System.alloc(layout),
                 }
-            }Allocatormode::_BrugAutoOpt_ =>{
-                ret = System.alloc(layout)
             }
-             // Allocatormode::_TCMALLOC_ => {
+            Allocatormode::_BrugAutoOpt_ => {
+                ret = System.alloc(layout); //Set _SYS_ as default
+            } // Allocatormode::_TCMALLOC_ => {
               //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8
               // }
         }
 
-        if layout.size() > PTE_PAGE_SIZE {
+        if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE
+        //|| BRUG.current_alloc == Allocatormode::_BrugMonitor_
+        {
             let _alloc_data = Allocdata {
                 allocator: BRUG.current_alloc,
                 counter: 1,
@@ -359,7 +333,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         //Free function
-        BRUG.remove(ptr);
 
         match BRUG.current_alloc {
             Allocatormode::_SYS_ => System.dealloc(ptr, layout),
@@ -379,9 +352,16 @@ unsafe impl GlobalAlloc for BrugAllocator {
                 }
                 _ => (),
             },
-            Allocatormode::_BrugAutoOpt_ =>{
-                System.dealloc(ptr, layout)
-            }
+            Allocatormode::_BrugAutoOpt_ => match BRUG.get_allocator(ptr) {
+                Allocatormode::_SYS_ => System.dealloc(ptr, layout),
+                Allocatormode::_MIMALLOC_ => MiMalloc.dealloc(ptr, layout),
+                Allocatormode::_JEMALLOC_ => Jemalloc.dealloc(ptr, layout),
+                Allocatormode::_MMAP_ => {
+                    let addr = ptr as *mut c_void;
+                    libc::munmap(addr, layout.size());
+                }
+                _ => System.dealloc(ptr, layout),
+            },
         }
     }
 
@@ -392,6 +372,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
         let ret: *mut u8;
         let _old_addr = ptr.clone() as usize;
         let _start = Instant::now();
+        let mut _new_allocator: Allocatormode = Allocatormode::_SYS_;
         // println!("{}", new_size);
 
         match BRUG.current_alloc {
@@ -403,9 +384,15 @@ unsafe impl GlobalAlloc for BrugAllocator {
                 ret = libc::mremap(old_address, layout.size(), new_size, libc::MREMAP_MAYMOVE)
                     as *mut u8
             }
-            Allocatormode::_BrugTemplate_ => {
-                let _current_allocator: Allocatormode = BRUG.brug_template_mode(layout.size());
-                let _new_allocator: Allocatormode = BRUG.brug_template_mode(new_size);
+            Allocatormode::_BrugTemplate_ | Allocatormode::_BrugAutoOpt_ => {
+                let _current_allocator: Allocatormode;
+                if BRUG.current_alloc == Allocatormode::_BrugTemplate_ {
+                    _current_allocator = BRUG.brug_template_mode(layout.size());
+                    _new_allocator = BRUG.brug_template_mode(new_size);
+                } else {
+                    _new_allocator = BRUG.optimization_mode(new_size);
+                    _current_allocator = BRUG.get_allocator(ptr);
+                }
                 let _new = std::alloc::Layout::from_size_align(new_size, layout.align()).unwrap();
                 if _current_allocator == _new_allocator {
                     match _new_allocator {
@@ -453,30 +440,32 @@ unsafe impl GlobalAlloc for BrugAllocator {
                         _ => System.alloc(_new),
                     };
                     std::ptr::copy_nonoverlapping(ptr, ret, layout.size());
+                    match _current_allocator {
+                        Allocatormode::_SYS_ => System.dealloc(ptr, layout),
+                        Allocatormode::_MIMALLOC_ => MiMalloc.dealloc(ptr, layout),
+                        Allocatormode::_JEMALLOC_ => Jemalloc.dealloc(ptr, layout),
+                        Allocatormode::_MMAP_ => {
+                            let addr = ptr as *mut c_void;
+                            libc::munmap(addr, layout.size());
+                        }
+                        _ => println!("called"),     //This is called too frequently
+                    }
                 }
-            } Allocatormode::_BrugAutoOpt_ =>{
-                ret = System.realloc(ptr, layout, new_size)
-            } 
-            // Allocatormode::_TCMALLOC_ => {
+            } // Allocatormode::_TCMALLOC_ => {
               //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8;
               //     std::ptr::copy_nonoverlapping(ptr, ret, layout.size());
               // }
         }
 
-        // if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ {     //The tree mode only deploy in the Opt mode
-        //     if new_size < PTE_PAGE_SIZE {
-        //         //Using for the tree parts
-        //         //check the mechanism for this one
-        //         if layout.size() > PTE_PAGE_SIZE {
-        //             BRUG.remove(ptr);
-        //         }
-        //     } else {
-        //         let _ret = ret.clone() as usize;
-        //         let _duration = _start.elapsed();
-        //         BRUG.counter_grow(_old_addr, _ret);
-        //         BRUG.record(layout.size(), _duration, BRUG.current_alloc);
-        //     }
-        // }
+        if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE
+        // || BRUG.current_alloc == Allocatormode::_BrugMonitor_
+        {
+            let _ret = ret.clone() as usize;
+            let _duration = _start.elapsed();
+            BRUG.counter_grow(_old_addr, _ret);
+            BRUG.record(layout.size(), _duration, _new_allocator);
+            // println!("{:?}", _new_allocator);
+        }
 
         if ret.is_null() {
             panic!("Reallocae_error");
