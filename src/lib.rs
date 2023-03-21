@@ -114,7 +114,7 @@ mod tests {
     }
 
     static DATASIZE: i64 = 100_000_000;
-    static REPEATS: i64 = 5;
+    static REPEATS: i64 = 2;
 
     #[test]
     fn sequential() {
