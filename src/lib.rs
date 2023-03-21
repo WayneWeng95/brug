@@ -102,19 +102,21 @@ mod tests {
         test_multithread(repeats, datasize);
     }
 
-    use arrow::{array,record_batch};
+    use arrow::{array, record_batch};
     use std::sync;
-    fn arrow_functional() {     //A simple arrow test to testify functionality
+    fn arrow_functional() {
+        //A simple arrow test to testify functionality
         println!("Arrow test");
         let col_1 = sync::Arc::new(array::Int32Array::from_iter([1, 2, 3])) as _;
         let col_2 = sync::Arc::new(array::Float32Array::from_iter([1., 6.3, 4.])) as _;
 
-        let batch = record_batch::RecordBatch::try_from_iter([("col1", col_1), ("col_2", col_2)]).unwrap();
-        println!("{:?}",batch);
+        let batch =
+            record_batch::RecordBatch::try_from_iter([("col1", col_1), ("col_2", col_2)]).unwrap();
+        println!("{:?}", batch);
     }
 
-    static DATASIZE: i64 = 100_000_000;
-    static REPEATS: i64 = 2;
+    static DATASIZE: i64 = 1_000_000_000;
+    static REPEATS: i64 = 5;
 
     #[test]
     fn sequential() {
