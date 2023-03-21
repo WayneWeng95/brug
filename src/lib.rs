@@ -115,7 +115,7 @@ mod tests {
         println!("{:?}", batch);
     }
 
-    static DATASIZE: i64 = 1_000_000_000;
+    static DATASIZE: i64 = 100_000_000;
     static REPEATS: i64 = 5;
 
     #[test]
@@ -139,6 +139,11 @@ mod tests {
     #[test]
     fn combined() {
         combine_test(REPEATS, DATASIZE);
+    }
+
+    #[test]
+    fn arrow() {
+        arrow_functional()
     }
 }
 
