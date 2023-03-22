@@ -264,7 +264,8 @@ impl BrugStruct {
     }
 
     pub unsafe fn disable_monitor() {
-        BRUG.monitor_flag.store(false, SeqCst)
+        BRUG.monitor_flag.store(false, SeqCst);
+        BRUG.monitor_map.get_mut().unwrap().clear();
         //Destory the map
     }
 
@@ -317,7 +318,7 @@ impl BrugStruct {
         if BRUG.monitor_flag.load(SeqCst) {
             let _monitor_tree = BRUG.monitor_map.get_mut().unwrap();
             for (addr, mointordata) in _monitor_tree {
-                println!("{}: {:?}", addr, mointordata);
+                println!("Object address: {} with {:?}", addr, mointordata);
             }
         } else {
             println!("Monitor mode not enabled");
