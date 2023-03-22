@@ -135,6 +135,7 @@ mod tests {
 
         unsafe {
             brug_allocator::BrugStruct::monitor_print();
+            brug_allocator::BrugStruct::disable_monitor();
         }
 
         // set_allocator_mode!(allocator, { arrow_functional() });
@@ -145,12 +146,14 @@ mod tests {
         // let allocator = brug_allocator::Allocator::_JEMALLOC_;
         unsafe {
             brug_allocator::BrugStruct::enable_monitor(); //This cause stack overflow
+            brug_allocator::BrugStruct::change_monitor_limiter(4096);
         }
         let allocator = brug_allocator::Allocatormode::_BrugAutoOpt_;
         set_allocator_mode!(allocator, multi_test(REPEATS, DATASIZE, allocator));
 
         unsafe {
             brug_allocator::BrugStruct::monitor_print();
+            brug_allocator::BrugStruct::disable_monitor();
         }
     }
     #[test]
