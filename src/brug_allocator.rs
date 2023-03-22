@@ -2,7 +2,7 @@ use jemallocator::Jemalloc;
 use mimalloc::MiMalloc;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::collections::BTreeMap;
-// use std::sync::atomic::{AtomicU8, Ordering::SeqCst};
+use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 // use tcmalloc;
@@ -45,14 +45,22 @@ pub static mut BRUG_TEMPLATE: BrugTemplate = BrugTemplate {
     mmap: (true, 64 * KIBIBYTE, 16 * GIBIBYTE),
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 struct Allocdata {
     //Data sturcture to hold the characterstic of a reallocation object
     allocator: Allocatormode,
     counter: i32,
 }
 
+#[derive(Debug)]
+struct Monitordata {
+    counter: i32,
+    total_size: usize,
+    duration: Duration,
+}
+
 static DEFAULT_ALLOCATOR: Allocatormode = Allocatormode::_SYS_; //Current Set as the _SYS_ allocator for default
+static SIZE_LIMITER: usize = 1024; //This is the limiter for the monitor mode, the tree inserts speed is not capabile enough
 static PTE_PAGE_SIZE: usize = 4096; //4 KiB
                                     // static PMD_PAGE_SIZE: usize = 2097152; //2 MiB
                                     // static PUD_PAGE_SIZE: usize = 1073741824; //1 GiB
@@ -62,6 +70,8 @@ pub struct BrugStruct {
     mapping: Mutex<BTreeMap<usize, Allocdata>>,
     records: Mutex<[[Duration; 4]; 21]>,
     current_alloc: Allocatormode,
+    monitor_flag: AtomicBool,
+    monitor_map: Mutex<BTreeMap<usize, Monitordata>>,
 }
 unsafe impl Sync for BrugStruct {}
 
@@ -69,6 +79,8 @@ static mut BRUG: BrugStruct = BrugStruct {
     mapping: Mutex::new(BTreeMap::new()), //A tree to hold the allocator applied for this particular memory
     records: Mutex::new([[Duration::new(0, 0); 4]; 21]), // A 2-d array for holding the records, [size][allocator]
     current_alloc: DEFAULT_ALLOCATOR, //Indicating the Brug current mode, can be change to another ？
+    monitor_flag: AtomicBool::new(false),
+    monitor_map: Mutex::new(BTreeMap::new()),
 };
 
 #[allow(dead_code)]
@@ -245,6 +257,72 @@ impl BrugStruct {
             }
         };
     }
+
+    pub unsafe fn enable_monitor() {
+        BRUG.monitor_flag.store(true, SeqCst);
+        //Initilize the map
+    }
+
+    pub unsafe fn disable_monitor() {
+        BRUG.monitor_flag.store(false, SeqCst)
+        //Destory the map
+    }
+
+    unsafe fn monitor_input(&mut self, address: usize, monitor_data: Monitordata) {
+        //record when allocation happens
+        let _tree = self.monitor_map.get_mut().unwrap();
+        _tree.insert(address, monitor_data); //This insert cause the segamentation fault
+    }
+
+    unsafe fn monitor_update(
+        //Updates the monitoring data on reallocation
+        &mut self,
+        old_address: usize,
+        new_address: usize,
+        duration: Duration,
+        new_size: usize,
+    ) {
+        let _tree = self.monitor_map.get_mut().unwrap();
+        let _new_counter;
+        let _new_duration;
+        let _new_total_size;
+
+        match _tree.remove(&old_address) {
+            Some(monitor_data) => {
+                _new_counter = monitor_data.counter + 1;
+                _new_duration = monitor_data.duration + duration;
+                _new_total_size = monitor_data.total_size + new_size;
+            }
+            None => {
+                _new_counter = 1;
+                _new_total_size = new_size;
+                _new_duration = duration;
+            }
+        };
+        let _new_data = Monitordata {
+            counter: _new_counter,
+            total_size: _new_total_size,
+            duration: _new_duration,
+        };
+        _tree.insert(new_address, _new_data);
+    }
+
+    unsafe fn monitor_release(&mut self, addr: usize) {
+        //Currently remove this one after deallocation , But this remain thinking
+        let _tree = self.monitor_map.get_mut().unwrap();
+        _tree.remove(&addr);
+    }
+
+    pub unsafe fn monitor_print() {
+        if BRUG.monitor_flag.load(SeqCst) {
+            let _monitor_tree = BRUG.monitor_map.get_mut().unwrap();
+            for (addr, mointordata) in _monitor_tree {
+                println!("{}: {:?}", addr, mointordata);
+            }
+        } else {
+            println!("Monitor mode not enabled");
+        }
+    } //Output records
 }
 
 #[global_allocator]
@@ -254,6 +332,8 @@ unsafe impl GlobalAlloc for BrugAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         //allocation function
         let ret: *mut u8;
+        let _monitor_flag = BRUG.monitor_flag.load(SeqCst);
+        let _start = Instant::now();
 
         match BRUG.current_alloc {
             Allocatormode::_SYS_ => ret = System.alloc(layout),
@@ -324,6 +404,18 @@ unsafe impl GlobalAlloc for BrugAllocator {
               // }
         }
 
+        if _monitor_flag && layout.size() > SIZE_LIMITER {
+            //Adding a filters
+            let _ret = ret.clone() as usize;
+            let _duration = _start.elapsed();
+            let _monitor_data = Monitordata {
+                counter: 1,
+                total_size: layout.size(),
+                duration: _duration,
+            };
+            BRUG.monitor_input(_ret, _monitor_data);
+        }
+
         if ret.is_null() {
             panic!("Allocate_error");
         }
@@ -333,6 +425,12 @@ unsafe impl GlobalAlloc for BrugAllocator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         //Free function
+
+        // if BRUG.monitor_flag.load(SeqCst) {
+        //     //Think about how to deal with records
+        //     let _addr = ptr.clone() as usize;
+        //     BRUG.monitor_release(_addr);
+        // }
 
         match BRUG.current_alloc {
             Allocatormode::_SYS_ => System.dealloc(ptr, layout),
@@ -471,13 +569,17 @@ unsafe impl GlobalAlloc for BrugAllocator {
               // }
         }
 
-        if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE
-        // Put the data into the tree.
-        {
+        if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE {
             let _ret = ret.clone() as usize;
             let _duration = _start.elapsed();
             BRUG.counter_grow(_old_addr, _ret, _new_allocator);
             BRUG.record(new_size, _duration, _new_allocator);
+        }
+
+        if BRUG.monitor_flag.load(SeqCst) {
+            let _ret = ret.clone() as usize;
+            let _duration = _start.elapsed();
+            BRUG.monitor_update(_old_addr, _ret, _duration, new_size);
         }
 
         if ret.is_null() {

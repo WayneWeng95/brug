@@ -124,17 +124,34 @@ mod tests {
         //     brug_allocator::BRUG_TEMPLATE.mmap = (false, 0, 0);      //Changing of the template variable
         // }
         // let allocator = brug_allocator::Allocatormode::_SYS_;       //Create the flag
+
+        unsafe {
+            brug_allocator::BrugStruct::enable_monitor(); //This cause stack overflow
+        }
+
         let allocator = brug_allocator::Allocatormode::_BrugAutoOpt_; //Create the flag
                                                                       // let allocator = brug_allocator::Allocatormode::_JEMALLOC_; //Create the flag
         set_allocator_mode!(allocator, { seq_test(REPEATS, DATASIZE, allocator) });
+
+        unsafe {
+            brug_allocator::BrugStruct::monitor_print();
+        }
+
         // set_allocator_mode!(allocator, { arrow_functional() });
         //Use the marco
     }
     #[test]
     fn multi_thread() {
         // let allocator = brug_allocator::Allocator::_JEMALLOC_;
-        let allocator = brug_allocator::Allocatormode::_BrugTemplate_;
+        unsafe {
+            brug_allocator::BrugStruct::enable_monitor(); //This cause stack overflow
+        }
+        let allocator = brug_allocator::Allocatormode::_BrugAutoOpt_;
         set_allocator_mode!(allocator, multi_test(REPEATS, DATASIZE, allocator));
+
+        unsafe {
+            brug_allocator::BrugStruct::monitor_print();
+        }
     }
     #[test]
     fn combined() {
