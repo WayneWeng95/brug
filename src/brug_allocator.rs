@@ -2,6 +2,7 @@ use jemallocator::Jemalloc;
 use mimalloc::MiMalloc;
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::collections::BTreeMap;
+use std::sync::atomic::AtomicI32;
 use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -60,7 +61,6 @@ struct Monitordata {
 }
 
 static DEFAULT_ALLOCATOR: Allocatormode = Allocatormode::_SYS_; //Current Set as the _SYS_ allocator for default
-static SIZE_LIMITER: usize = 1024; //This is the limiter for the monitor mode, the tree inserts speed is not capabile enough
 static PTE_PAGE_SIZE: usize = 4096; //4 KiB
                                     // static PMD_PAGE_SIZE: usize = 2097152; //2 MiB
                                     // static PUD_PAGE_SIZE: usize = 1073741824; //1 GiB
@@ -72,6 +72,7 @@ pub struct BrugStruct {
     current_alloc: Allocatormode,
     monitor_flag: AtomicBool,
     monitor_map: Mutex<BTreeMap<usize, Monitordata>>,
+    monitor_size_limiter: AtomicI32, //This is the limiter for the monitor mode, the tree inserts speed is not capabile enough
 }
 unsafe impl Sync for BrugStruct {}
 
@@ -81,6 +82,7 @@ static mut BRUG: BrugStruct = BrugStruct {
     current_alloc: DEFAULT_ALLOCATOR, //Indicating the Brug current mode, can be change to another ？
     monitor_flag: AtomicBool::new(false),
     monitor_map: Mutex::new(BTreeMap::new()),
+    monitor_size_limiter: AtomicI32::new(1024), //First assign to 1024
 };
 
 #[allow(dead_code)]
@@ -263,6 +265,11 @@ impl BrugStruct {
         //Initilize the map
     }
 
+    pub unsafe fn change_monitor_limiter(val: i32) {
+        //Change the limiter
+        BRUG.monitor_size_limiter.store(val, SeqCst);
+    }
+
     pub unsafe fn disable_monitor() {
         BRUG.monitor_flag.store(false, SeqCst);
         BRUG.monitor_map.get_mut().unwrap().clear();
@@ -405,7 +412,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
               // }
         }
 
-        if _monitor_flag && layout.size() > SIZE_LIMITER {
+        if _monitor_flag && layout.size() > BRUG.monitor_size_limiter.load(SeqCst) as usize {
             //Adding a filters
             let _ret = ret.clone() as usize;
             let _duration = _start.elapsed();
