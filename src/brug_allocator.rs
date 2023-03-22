@@ -20,9 +20,10 @@ pub enum Allocatormode {
     _MMAP_,         //MODE 3
     _BrugTemplate_, //MODE 4
     _BrugAutoOpt_,  //MODE 5
-    _BrugMonitor_,  //MODE 6
-                    //  _TCMALLOC_,    //MODE 7
+                    //  _TCMALLOC_,    //MODE 6
 }
+
+// Make the default allocator to Jemalloc for better allocation performance ?
 
 pub struct BrugTemplate {
     //This is the data structure for using the Brug mode. Each allocator is called when it match the size.
@@ -57,6 +58,7 @@ static PTE_PAGE_SIZE: usize = 4096; //4 KiB
                                     // static PUD_PAGE_SIZE: usize = 1073741824; //1 GiB
 
 pub struct BrugStruct {
+    //Adding the monitor mode
     mapping: Mutex<BTreeMap<usize, Allocdata>>,
     records: Mutex<[[Duration; 4]; 21]>,
     current_alloc: Allocatormode,
@@ -91,9 +93,6 @@ impl BrugStruct {
             }
             Allocatormode::_BrugAutoOpt_ => {
                 BRUG.current_alloc = Allocatormode::_BrugAutoOpt_;
-            }
-            Allocatormode::_BrugMonitor_ => {
-                BRUG.current_alloc = Allocatormode::_BrugMonitor_;
             } // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
         }
     }
@@ -320,9 +319,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
                     };
                     BRUG.input(ret.clone() as usize, _alloc_data);
                 }
-            }
-            Allocatormode::_BrugMonitor_ => {
-                ret = System.alloc(layout);
             } // Allocatormode::_TCMALLOC_ => {
               //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8
               // }
@@ -371,9 +367,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
                         _ => System.dealloc(ptr, layout),
                     }
                 }
-            }
-            Allocatormode::_BrugMonitor_ => {
-                System.dealloc(ptr, layout);
             } // Allocatormode::_TCMALLOC_ => tcmalloc::tc_free(ptr as *mut c_void),
         }
     }
@@ -429,10 +422,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
                         _ => ret = System.realloc(ptr, layout, new_size),
                     }
                 } else {
-                    println!(
-                        "current: {:?} -> new: {:?} , size :{}",
-                        _current_allocator, _new_allocator, new_size
-                    );
+                    // println!(
+                    //     "current: {:?} -> new: {:?} , size :{}",
+                    //     _current_allocator, _new_allocator, new_size
+                    // );       //This indicates the change happens in the auto mode
                     ret = match _new_allocator {
                         Allocatormode::_SYS_ => System.alloc(_new),
                         Allocatormode::_MIMALLOC_ => MiMalloc.alloc(_new),
@@ -472,12 +465,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
                         _ => (),
                     }
                 }
-            }
-            Allocatormode::_BrugMonitor_ => ret = System.realloc(ptr, layout, new_size),
-            // Allocatormode::_TCMALLOC_ => {
-            //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8;
-            //     std::ptr::copy_nonoverlapping(ptr, ret, layout.size());
-            // }
+            } // Allocatormode::_TCMALLOC_ => {
+              //     ret = tcmalloc::tc_memalign(layout.align(), layout.size()) as *mut u8;
+              //     std::ptr::copy_nonoverlapping(ptr, ret, layout.size());
+              // }
         }
 
         if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE
