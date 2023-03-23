@@ -55,9 +55,10 @@ struct Allocdata {
 
 #[derive(Debug)]
 struct Monitordata {
-    counter: i32,
+    realloc_counter: i32,
+    addr_counter: i32,
     total_size: usize,
-    duration: Duration,
+    total_duration: Duration,
 }
 
 static DEFAULT_ALLOCATOR: Allocatormode = Allocatormode::_SYS_; //Current Set as the _SYS_ allocator for default
@@ -291,26 +292,34 @@ impl BrugStruct {
         new_size: usize,
     ) {
         let _tree = self.monitor_map.get_mut().unwrap();
-        let _new_counter;
+        let _realloc_counter;
+        let _addr_counter;
         let _new_duration;
         let _new_total_size;
 
         match _tree.remove(&old_address) {
             Some(monitor_data) => {
-                _new_counter = monitor_data.counter + 1;
-                _new_duration = monitor_data.duration + duration;
+                _realloc_counter = monitor_data.realloc_counter + 1;
+                if old_address != new_address {
+                    _addr_counter = monitor_data.addr_counter + 1;
+                } else {
+                    _addr_counter = monitor_data.addr_counter;
+                }
+                _new_duration = monitor_data.total_duration + duration;
                 _new_total_size = monitor_data.total_size + new_size;
             }
             None => {
-                _new_counter = 1;
+                _realloc_counter = 1;
+                _addr_counter = 0;
                 _new_total_size = new_size;
                 _new_duration = duration;
             }
         };
         let _new_data = Monitordata {
-            counter: _new_counter,
+            realloc_counter: _realloc_counter,
+            addr_counter: _addr_counter,
             total_size: _new_total_size,
-            duration: _new_duration,
+            total_duration: _new_duration,
         };
         _tree.insert(new_address, _new_data);
     }
@@ -417,9 +426,10 @@ unsafe impl GlobalAlloc for BrugAllocator {
             let _ret = ret.clone() as usize;
             let _duration = _start.elapsed();
             let _monitor_data = Monitordata {
-                counter: 1,
+                realloc_counter: 0,
+                addr_counter: 0,
                 total_size: layout.size(),
-                duration: _duration,
+                total_duration: _duration,
             };
             BRUG.monitor_input(_ret, _monitor_data);
         }
