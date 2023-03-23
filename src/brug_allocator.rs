@@ -263,7 +263,7 @@ impl BrugStruct {
 
     pub unsafe fn enable_monitor() {
         BRUG.monitor_flag.store(true, SeqCst);
-        //Initilize the map
+        eprintln!("Enable monitor mode, performance may influenced");
     }
 
     pub unsafe fn change_monitor_limiter(val: i32) {
@@ -334,10 +334,10 @@ impl BrugStruct {
         if BRUG.monitor_flag.load(SeqCst) {
             let _monitor_tree = BRUG.monitor_map.get_mut().unwrap();
             for (addr, mointordata) in _monitor_tree {
-                println!("Object address: {} with {:?}", addr, mointordata);
+                eprintln!("Object address: {} with {:?}", addr, mointordata);
             }
         } else {
-            println!("Monitor mode not enabled");
+            eprintln!("Monitor mode not enabled");
         }
     } //Output records
 }
