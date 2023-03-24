@@ -25,23 +25,7 @@ macro_rules! set_allocator_mode {
 #[cfg(test)]
 mod tests {
     use crate::{brug_allocator, Allocatormode};
-    use std::thread;
     use std::time::Instant;
-
-    fn measurements(datasize: i64) {
-        //Measurement using the vector push
-        let mut v = Vec::new();
-
-        let start = Instant::now();
-
-        for n in 0..datasize {
-            v.push(n);
-        }
-
-        let duration = start.elapsed();
-
-        println!("Time measured is: {:?}", duration);
-    }
 
     fn test_sequential(numbers: i64, datasize: i64) {
         //Sequential operations
@@ -107,12 +91,44 @@ mod tests {
     fn arrow_functional() {
         //A simple arrow test to testify functionality
         println!("Arrow test");
-        let col_1 = sync::Arc::new(array::Int32Array::from_iter([1, 2, 3])) as _;
-        let col_2 = sync::Arc::new(array::Float32Array::from_iter([1., 6.3, 4.])) as _;
+        let col_1 = sync::Arc::new(array::Int32Array::from_iter([0; 100])) as _;
+        let col_2 = sync::Arc::new(array::Int32Array::from_iter([0; 100])) as _;
 
         let batch =
             record_batch::RecordBatch::try_from_iter([("col1", col_1), ("col_2", col_2)]).unwrap();
         println!("{:?}", batch);
+    }
+
+    use std::{collections, thread};
+
+    fn measurements(datasize: i64) {
+        //Measurement using the vector push
+        // let mut vec = collections::Vec::new();
+        // let mut vec_deque = collections::VecDeque::new();
+        // let mut list= collections::LinkedList::new();
+        // let mut hasmap = collections::HashMap::new();
+        // let mut btreemap = collections::BTreeMap::new();
+        // let mut hashset = collections::HashSet::new();
+        let mut btreeset = collections::BTreeSet::new();
+        // let mut heap = collections::BinaryHeap::new();
+
+        let start = Instant::now();
+
+        for n in 0..datasize {
+            // vec.push(n);
+            // vec_deque.push_back(n);
+            // list.push_back(n);
+            // list.push_front(n);
+            // hasmap.insert(n + 1, n.to_string());
+            // btreemap.insert(n + 1, n);
+            // hashset.insert(n);
+            btreeset.insert(n);
+            // heap.push(n);
+        }
+
+        let duration = start.elapsed();
+
+        println!("Time measured is: {:?}", duration);
     }
 
     static DATASIZE: i64 = 100_000_000;
@@ -129,7 +145,7 @@ mod tests {
             brug_allocator::BrugStruct::enable_monitor(); //This cause stack overflow
         }
 
-        let allocator = brug_allocator::Allocatormode::_BrugAutoOpt_; //Create the flag
+        let allocator = brug_allocator::Allocatormode::_JEMALLOC_; //Create the flag
                                                                       // let allocator = brug_allocator::Allocatormode::_JEMALLOC_; //Create the flag
         set_allocator_mode!(allocator, { seq_test(REPEATS, DATASIZE, allocator) });
 
@@ -163,8 +179,13 @@ mod tests {
 
     #[test]
     fn arrow() {
-        arrow_functional()
+        // let allocator = brug_allocator::Allocatormode::_SYS_;
+        // set_allocator_mode!(allocator, { arrow_functional() });
+        arrow_functional();
     }
+
+    #[test]
+    fn glass_bench() {}
 }
 
 //cargo test -- --nocapture --test sequential   //to run sequential test
