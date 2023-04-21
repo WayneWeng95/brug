@@ -1,0 +1,280 @@
+hashmap 
+SYS
+6.728330426s
+6.540143125s
+6.648885746s
+6.51500101s
+6.715221251s
+
+JEMALLOC
+6.649588295s
+6.682702938s
+6.498652728s
+6.679992148s
+6.682850578s
+
+MMAP
+6.667282287s
+6.667127555s
+6.713545585s
+6.559044608s
+6.728984556s
+
+VecDeque
+SYS
+realloc : 610ns
+realloc : 70ns
+realloc : 130ns
+realloc : 110ns
+realloc : 120ns
+realloc : 150ns
+realloc : 130ns
+realloc : 250ns
+realloc : 181ns
+realloc : 37.911µs
+realloc : 16.87µs
+realloc : 8.051µs
+realloc : 8.81µs
+realloc : 5.56µs
+realloc : 12.34µs
+realloc : 13.971µs
+realloc : 27.49µs
+realloc : 36.5µs
+realloc : 58.061µs
+realloc : 112.611µs
+realloc : 228.523µs
+realloc : 364.855µs
+realloc : 901.613µs
+realloc : 1.530262ms
+realloc : 2.913173ms
+
+JEMALLOC
+realloc : 7.6µs
+realloc : 1.15µs
+realloc : 1.03µs
+realloc : 910ns
+realloc : 1.62µs
+realloc : 1.25µs
+realloc : 1.51µs
+realloc : 27.3µs
+realloc : 4.91µs
+realloc : 3.17µs
+realloc : 3.02µs
+realloc : 4.11µs
+realloc : 3.8µs
+realloc : 82.131µs
+realloc : 678.38µs
+realloc : 2.0426ms
+realloc : 3.298839ms
+realloc : 6.722569ms
+realloc : 14.725796ms
+realloc : 29.638735ms
+realloc : 57.102978ms
+realloc : 212.373896ms
+realloc : 226.705886ms
+realloc : 444.214725ms
+realloc : 1.140702522s
+
+MMAP
+realloc : 1.31µs
+realloc : 200ns
+realloc : 140ns
+realloc : 130ns
+realloc : 9.76µs
+realloc : 1.34µs
+realloc : 3.93µs
+realloc : 2.98µs
+realloc : 3.03µs
+realloc : 3.53µs
+realloc : 3.34µs
+realloc : 3.65µs
+realloc : 4.76µs
+realloc : 4.781µs
+realloc : 9.23µs
+realloc : 10.41µs
+realloc : 16.09µs
+realloc : 9.43µs
+realloc : 15.85µs
+realloc : 15.36µs
+realloc : 25.92µs
+realloc : 32.601µs
+realloc : 45.161µs
+realloc : 75.891µs
+realloc : 88.382µs
+
+LinkedList Why this happen?
+
+SYS
+10.665201405s
+8.578509777s
+8.341055514s
+8.445530817s
+8.298251395s
+
+JEMALLOC
+16.908948648s
+17.346464023s
+17.190970645s
+17.366562673s
+17.22057011s
+
+
+Btreemap
+SYS
+22.558181762s
+21.998714277s
+21.991505768s
+21.974067628s
+21.807325093s
+
+JEMALLOC
+22.637705787s
+22.80152905s
+22.820586789s
+22.891990747s
+22.806974443s
+
+BRUG
+22.415558941s
+22.157409023s
+21.990604903s
+22.117844166s
+22.06385449s
+
+heap
+SYS
+realloc : 770ns
+realloc : 100ns
+realloc : 360ns
+realloc : 130ns
+realloc : 50ns
+realloc : 30ns
+realloc : 110ns
+realloc : 100ns
+realloc : 330ns
+realloc : 200ns
+realloc : 120ns
+realloc : 120ns
+realloc : 56.401µs
+realloc : 18.161µs
+realloc : 9.201µs
+realloc : 9.37µs
+realloc : 16.961µs
+realloc : 22.77µs
+realloc : 23.69µs
+realloc : 34.071µs
+realloc : 59.251µs
+realloc : 94.862µs
+realloc : 152.792µs
+realloc : 349.055µs
+realloc : 603.909µs
+
+JEMALLOC
+realloc : 7.22µs
+realloc : 870ns
+realloc : 680ns
+realloc : 880ns
+realloc : 710ns
+realloc : 930ns
+realloc : 780ns
+realloc : 1.65µs
+realloc : 21.51µs
+realloc : 8.93µs
+realloc : 4.76µs
+realloc : 4.17µs
+realloc : 4.27µs
+realloc : 19.24µs
+realloc : 6.34µs
+realloc : 143.882µs
+realloc : 128.022µs
+realloc : 1.237969ms
+realloc : 3.215289ms
+realloc : 5.997812ms
+realloc : 11.393474ms
+realloc : 22.859319ms
+realloc : 57.067412ms
+realloc : 107.952338ms
+realloc : 185.214367ms
+
+MMAP
+realloc : 690ns
+realloc : 180ns
+realloc : 130ns
+realloc : 150ns
+realloc : 140ns
+realloc : 150ns
+realloc : 140ns
+realloc : 6.55µs
+realloc : 4.15µs
+realloc : 3.09µs
+realloc : 9.56µs
+realloc : 5.96µs
+realloc : 5.73µs
+realloc : 5.17µs
+realloc : 6.05µs
+realloc : 11.28µs
+realloc : 10.56µs
+realloc : 21.211µs
+realloc : 13.78µs
+realloc : 12.83µs
+realloc : 12.38µs
+realloc : 19.7µs
+realloc : 25.49µs
+realloc : 26.08µs
+realloc : 41.661µs
+
+
+BRUG
+realloc : 3.241µs
+realloc : 430ns
+realloc : 240ns
+realloc : 320ns
+realloc : 330ns
+realloc : 240ns
+realloc : 320ns
+realloc : 2.5µs
+realloc : 3.37µs
+realloc : 900ns
+realloc : 780ns
+realloc : 640ns
+realloc : 1.08µs
+realloc : 1.49µs
+realloc : 1.85µs
+realloc : 3.35µs
+realloc : 1.169758ms
+realloc : 35.681µs
+realloc : 40.321µs
+realloc : 48.801µs
+realloc : 62.931µs
+realloc : 102.512µs
+realloc : 167.013µs
+realloc : 284.914µs
+realloc : 652.739µs
+
+
+BRUG Template
+realloc : 9.03µs
+realloc : 940ns
+realloc : 610ns
+realloc : 1.01µs
+realloc : 1.04µs
+realloc : 910ns
+realloc : 790ns
+realloc : 2.83µs
+realloc : 570ns
+realloc : 240ns
+realloc : 150ns
+realloc : 28.9µs
+realloc : 10.54µs
+realloc : 6.47µs
+realloc : 7.66µs
+realloc : 11.36µs
+realloc : 7.72µs
+realloc : 8.12µs
+realloc : 9.8µs
+realloc : 15.251µs
+realloc : 15.721µs
+realloc : 19.24µs
+realloc : 23.06µs
+realloc : 32.051µs
+realloc : 40.71µs

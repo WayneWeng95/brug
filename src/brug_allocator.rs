@@ -587,6 +587,9 @@ unsafe impl GlobalAlloc for BrugAllocator {
               // }
         }
 
+        let _duration = _start.elapsed();
+        println!("realloc : {:?}",_duration);
+
         if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE {
             let _ret = ret.clone() as usize;
             let _duration = _start.elapsed();

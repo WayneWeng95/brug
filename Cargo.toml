@@ -17,7 +17,18 @@ byte-unit = "4.0.19"
 arrow = "35.0.0"
 glassbench = "0.3.4"
 criterion = "0.4"
+datafusion = "22.0.0"
+# vega = { git = "https://github.com/rajasekarv/vega", branch = "master }
 
 [[bench]]
 name = "my_benchmark"
 harness = false
+
+
+[lib]
+name = "brug"
+path = "src/lib.rs"
+
+[[bin]]
+name = "brug"
+src = "src/main.rs"
