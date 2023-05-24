@@ -11,7 +11,7 @@ use byte_unit::{GIBIBYTE, KIBIBYTE}; //MEBIBYTE
 use std::os::raw::c_void;
 use std::ptr;
 
-struct BrugAllocator;
+pub struct BrugAllocator;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Allocatormode {
@@ -342,8 +342,8 @@ impl BrugStruct {
     } //Output records
 }
 
-#[global_allocator]
-static GLOBAL: BrugAllocator = BrugAllocator;
+// #[global_allocator]
+// static GLOBAL: BrugAllocator = BrugAllocator;
 
 unsafe impl GlobalAlloc for BrugAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
@@ -588,7 +588,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
         }
 
         let _duration = _start.elapsed();
-        println!("realloc : {:?}",_duration);
+        println!("{:?}", _duration.as_micros());
 
         if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE {
             let _ret = ret.clone() as usize;

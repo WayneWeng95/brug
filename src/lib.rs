@@ -122,14 +122,14 @@ mod tests {
 
     fn measurements(datasize: i64) {
         //Measurement using the vector push
-        // let mut vec = vec::Vec::new();
+        let mut vec = vec::Vec::new();
         // let mut vec_deque = collections::VecDeque::new();
         // let mut list= collections::LinkedList::new();
         // let mut hasmap = collections::HashMap::new();
         // let mut btreemap = collections::BTreeMap::new();
         // let mut hashset = collections::HashSet::new();
         // let mut btreeset = collections::BTreeSet::new();
-        let mut heap = collections::BinaryHeap::new();
+        // let mut heap = collections::BinaryHeap::new();
 
         let product1 = Product {
             name: String::from("Prodcut1"),
@@ -175,11 +175,11 @@ mod tests {
         let start = Instant::now();
 
         for n in 0..datasize {
-            // if n % 2 == 0 {
-            //     vec.push(p1);
-            // } else {
-            //     vec.push(p2);
-            // }
+            if n % 2 == 0 {
+                vec.push(p1);
+            } else {
+                vec.push(p2);
+            }
            
             // vec.push("This is a test string 123321123321");
 
@@ -198,7 +198,7 @@ mod tests {
             // }
 
             // list.push_back(n);
-            // list.push_front(n);
+            // list.push_front(n-1);
 
                         // if n % 2 == 0 {
             //     hasmap.insert(n, p1);
@@ -220,7 +220,7 @@ mod tests {
             
             // btreeset.insert(n);
 
-            heap.push(n);
+            // heap.push(n);
         }
 
         let duration = start.elapsed();
@@ -229,8 +229,8 @@ mod tests {
         println!("{:?}", duration);
     }
 
-    static DATASIZE: i64 = 100;
-    static REPEATS: i64 = 10;
+    static DATASIZE: i64 = 100000000;
+    static REPEATS: i64 = 1;
 
     #[test]
     fn sequential() {
