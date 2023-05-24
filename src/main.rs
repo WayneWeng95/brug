@@ -120,12 +120,12 @@ fn main() {
 
     let datasize = 1000000000;
 
-    // let allocator = brug::Allocatormode::_SYS_;
+    let allocator = brug::Allocatormode::_SYS_;
     // let allocator = brug::Allocatormode::_JEMALLOC_;
     // let allocator = brug::Allocatormode::_MIMALLOC_;
     // let allocator = brug::Allocatormode::_MMAP_;
     // let allocator = brug::Allocatormode::_BrugTemplate_;
-    let allocator = brug::Allocatormode::_BrugAutoOpt_;
+    // let allocator = brug::Allocatormode::_BrugAutoOpt_;
 
     // running(datasize);
     // arrow_functional(datasize);
