@@ -1,14 +1,21 @@
 use std::time::Instant;
 use std::vec;
-
 #[cfg(unix)]
 mod brug_allocator;
 
 #[cfg(unix)]
 pub use crate::brug_allocator::*;
 
-#[global_allocator]
-static GLOBAL: brug_allocator::BrugAllocator = brug_allocator::BrugAllocator;
+// #[global_allocator]
+// static GLOBAL: brug_allocator::BrugAllocator = brug_allocator::BrugAllocator;
+
+// #[global_allocator]
+// static GLOBAL: Jemalloc = Jemalloc;
+
+
+
+// #[global_allocator]
+// static GLOBAL: MiMalloc = MiMalloc;
 
 fn running(datasize: i32) {
     let mut vec = vec::Vec::new();
@@ -18,8 +25,28 @@ fn running(datasize: i32) {
     }
 }
 
+#[macro_export] //The macro to insert the code block and allocator sign
+macro_rules! set_allocator_mode {
+    ( $mand_1:expr, $( $x:expr ),* ) => {
+        {
+
+            unsafe {
+                brug_allocator::BrugStruct::set_mode($mand_1);
+            }
+            $(
+                $x;
+            )*
+            unsafe {
+                brug_allocator::BrugStruct::end_set();
+            }
+        }
+    };
+}
+
 use arrow::ipc::Bool;
 use arrow::{array, buffer, record_batch};
+use jemallocator::Jemalloc;
+use mimalloc::MiMalloc;
 use std::sync;
 fn arrow_functional(datasize: i32) {
     //A simple arrow test to testify functionality
@@ -134,46 +161,40 @@ use std::{thread, time};
 fn main() {
     println!("I'm using the library:");
 
-    let datasize = 1000000;
+    let datasize = 100000000;
 
     // let allocator = brug::Allocatormode::_SYS_;
     // let allocator = brug::Allocatormode::_JEMALLOC_;
     // let allocator = brug::Allocatormode::_MIMALLOC_;
     // let allocator = brug::Allocatormode::_MMAP_;
     // let allocator = brug::Allocatormode::_BrugTemplate_;
-    let allocator = brug::Allocatormode::_BrugAutoOpt_;
+    // let allocator = brug::Allocatormode::_BrugAutoOpt_;
 
     // running(datasize);
 
     // read_file_vec("/home/weikang/Documents/Brug/Wikidump/enwiki-20230201-pages-articles-multistream1.xml-p1p41242").unwrap();
     // read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
 
-    unsafe {
-        brug::BrugStruct::enable_monitor();
-        brug::BrugStruct::set_mode(allocator);
+    let mut n = 0;
 
-        let mut n = 0;
+    let _start = Instant::now();
 
-        while n < 15 {
-            thread::sleep(time::Duration::from_secs(1));
-            //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
-            arrow_functional(datasize);
-            //     println!("      ");
 
-            n += 1;
-        }
+    while n < 15 {
+        thread::sleep(time::Duration::from_secs(1));
+        //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
+        // set_allocator_mode!(Allocatormode::_SYS_,arrow_functional(datasize));
+        arrow_functional(datasize);
+        // running(datasize);
+        //     println!("      ");
 
-        brug::BrugStruct::end_set();
-        brug::BrugStruct::monitor_print();
-        brug::BrugStruct::disable_monitor();
+        n += 1;
+
+        // brug::BrugStruct::end_set();
+        // brug::BrugStruct::monitor_print();
+        // brug::BrugStruct::disable_monitor();
     }
+
+    let _duration = _start.elapsed();
+    println!("total time : {:?}", _duration);
 }
-
-// Object address: 139961451940224 with Monitordata { realloc_counter: 0, addr_counter: 0, total_size: 4000000000, total_duration: 22.66µs }
-// Object address: 139967900682240 with Monitordata { realloc_counter: 0, addr_counter: 0, total_size: 4000000000, total_duration: 12.79µs }
-// Object address: 139973269391488 with Monitordata { realloc_counter: 0, addr_counter: 0, total_size: 125000000, total_duration: 8.67µs }
-// Object address: 139973269393024 with Monitordata { realloc_counter: 0, addr_counter: 0, total_size: 125000000, total_duration: 56.01µs }
-
-// Object address: 140152464097280 with Monitordata { realloc_counter: 0, addr_counter: 0, total_size: 4000000000, total_duration: 1.78µs }
-// Object address: 140156464099328 with Monitordata { realloc_counter: 0, addr_counter: 0, total_size: 4000000000, total_duration: 2.15µs }
-// Object address: 140160464101376 with Monitordata { realloc_counter: 0, addr_counter: 0, total_size: 125000000, total_duration: 2.43µs }
