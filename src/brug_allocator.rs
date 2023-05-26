@@ -61,7 +61,7 @@ struct Monitordata {
     total_duration: Duration,
 }
 
-static DEFAULT_ALLOCATOR: Allocatormode = Allocatormode::_SYS_; //Current Set as the _SYS_ allocator for default
+static DEFAULT_ALLOCATOR: Allocatormode = Allocatormode::_BrugAutoOpt_; //Current Set as the _SYS_ allocator for default
 static PTE_PAGE_SIZE: usize = 4096; //4 KiB
                                     // static PMD_PAGE_SIZE: usize = 2097152; //2 MiB
                                     // static PUD_PAGE_SIZE: usize = 1073741824; //1 GiB
@@ -110,6 +110,7 @@ impl BrugStruct {
                 BRUG.current_alloc = Allocatormode::_BrugAutoOpt_;
             } // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
         }
+
     }
 
     pub unsafe fn end_set() {
@@ -587,8 +588,8 @@ unsafe impl GlobalAlloc for BrugAllocator {
               // }
         }
 
-        let _duration = _start.elapsed();
-        println!("{:?}", _duration);
+        // let _duration = _start.elapsed();
+        // println!("{:?}", _duration);
 
         if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE {
             let _ret = ret.clone() as usize;
