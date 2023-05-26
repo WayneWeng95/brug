@@ -161,11 +161,7 @@ use std::{thread, time};
 fn main() {
     println!("I'm using the library:");
 
-<<<<<<< HEAD
-    let datasize = 10000000;
-=======
     let datasize = 100000000;
->>>>>>> refs/remotes/origin/main
 
     // let allocator = brug::Allocatormode::_SYS_;
     // let allocator = brug::Allocatormode::_JEMALLOC_;
@@ -183,14 +179,6 @@ fn main() {
 
     let _start = Instant::now();
 
-<<<<<<< HEAD
-        while n < 15 {
-            thread::sleep(time::Duration::from_secs(1));
-            //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
-            arrow_functional(datasize);
-                println!("      ");
-=======
->>>>>>> refs/remotes/origin/main
 
     while n < 15 {
         thread::sleep(time::Duration::from_secs(1));
