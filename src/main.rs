@@ -6,13 +6,11 @@ mod brug_allocator;
 #[cfg(unix)]
 pub use crate::brug_allocator::*;
 
-// #[global_allocator]
-// static GLOBAL: brug_allocator::BrugAllocator = brug_allocator::BrugAllocator;
+#[global_allocator]
+static GLOBAL: brug_allocator::BrugAllocator = brug_allocator::BrugAllocator;
 
 // #[global_allocator]
 // static GLOBAL: Jemalloc = Jemalloc;
-
-
 
 // #[global_allocator]
 // static GLOBAL: MiMalloc = MiMalloc;
@@ -159,9 +157,8 @@ fn read_file_buffer(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
 use std::{thread, time};
 
 fn main() {
-    println!("I'm using the library:");
 
-    let datasize = 100000000;
+    let datasize = 100_000_000;
 
     // let allocator = brug::Allocatormode::_SYS_;
     // let allocator = brug::Allocatormode::_JEMALLOC_;
@@ -169,8 +166,6 @@ fn main() {
     // let allocator = brug::Allocatormode::_MMAP_;
     // let allocator = brug::Allocatormode::_BrugTemplate_;
     // let allocator = brug::Allocatormode::_BrugAutoOpt_;
-
-    // running(datasize);
 
     // read_file_vec("/home/weikang/Documents/Brug/Wikidump/enwiki-20230201-pages-articles-multistream1.xml-p1p41242").unwrap();
     // read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
@@ -181,11 +176,14 @@ fn main() {
 
 
     while n < 15 {
-        thread::sleep(time::Duration::from_secs(1));
-        //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
-        // set_allocator_mode!(Allocatormode::_SYS_,arrow_functional(datasize));
-        arrow_functional(datasize);
+        // thread::sleep(time::Duration::from_secs(1));
+        // read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
+        set_allocator_mode!(Allocatormode::_BrugAutoOpt_,read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml"));
+        // arrow_functional(datasize);
+        // set_allocator_mode!(Allocatormode::_BrugAutoOpt_,arrow_functional(datasize));
         // running(datasize);
+        // set_allocator_mode!(Allocatormode::_BrugAutoOpt_,running(datasize));
+
         //     println!("      ");
 
         n += 1;
