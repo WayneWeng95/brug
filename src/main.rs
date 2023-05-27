@@ -175,7 +175,7 @@ fn main() {
     let _start = Instant::now();
 
 
-    while n < 15 {
+    while n < 5 {
         // thread::sleep(time::Duration::from_secs(1));
         // read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
         set_allocator_mode!(Allocatormode::_BrugAutoOpt_,read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml"));
