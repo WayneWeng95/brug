@@ -171,11 +171,18 @@ from statistics import mean, variance, median
 x = ['Ptmalloc2 (SYS)', 'Jemalloc', 'Mimalloc',
      'MMAP', 'BrugTemplate', 'BrugAutoOpt']
 
-# Rust Arrow Mutable buffer
-# # Data for the y-axis (values for each group)
-y1 = [19.96, 18.25, 17.55, np.nan,
-      np.nan, np.nan]  # Group A (5 data points)s
-y2 = [16.97, 17.89, 17.11, 14.99, 15.03, 15.21]  # Group B (5 data points)
+# # Rust Arrow Mutable buffer integer
+# # # Data for the y-axis (values for each group)
+# y1 = [19.96, 18.25, 17.55, np.nan,
+#       np.nan, np.nan]  # Group A (5 data points)s
+# y2 = [16.97, 17.89, 17.11, 14.99, 15.03, 15.21]  # Group B (5 data points)
+
+
+# # Rust Arrow Mutable buffer data dump
+# # # Data for the y-axis (values for each group)
+# y1 = [238.40, 261.52, 247.38, np.nan,
+#       np.nan, np.nan]  # Group A (5 data points)s
+# y2 = [240.90, 258.83, 244.17, 87.76, 88.17, 100.33]  # Group B (5 data points)
 
 
 # Rust standard vector
@@ -185,11 +192,18 @@ y2 = [16.97, 17.89, 17.11, 14.99, 15.03, 15.21]  # Group B (5 data points)
 # y2 = [29.68, 31.95, 32.70, 29.80, 30.42, 29.89]  # Group B (5 data points)
 
 
-# Rust standard vector file
+# Rust standard vector data dump
+# Data for the y-axis (values for each group)
+y1 = [91.44, 267.88, 246.93, np.nan,
+      np.nan, np.nan]  # Group A (5 data points)s
+y2 = [88.05, 261.56, 246.78, 90.20, 90.16, 105.96]  # Group B (5 data points)
+
+
+# # Rust Arrow Datafusion
 # # Data for the y-axis (values for each group)
-# y1 = [28.99, 85.26, 78.47, np.nan,
+# y1 = [50.83, 81.52, 70.90, np.nan, 
 #       np.nan, np.nan]  # Group A (5 data points)s
-# y2 = [29.02, 82.79, 80.46, 28.67, 29.46, 35.77]  # Group B (5 data points)
+# y2 = [56.57, 83.93, 75.07, 646.08, 87.31, 63.56]  # Group B (5 data points)
 
 
 # Set the width of the bars
@@ -203,13 +217,13 @@ pos2 = [x + bar_width for x in np.arange(len(y2))]
 fig, ax = plt.subplots()
 
 # Plot the bars for Group A
-ax.bar(pos1, y1, width=bar_width, label='Direct use global allocator')
+ax.bar(pos1, y1, width=bar_width, label='Global allocator')
 
 # Plot the bars for Group B
-ax.bar(pos2, y2, width=bar_width, label='Using different mode with Brug')
+ax.bar(pos2, y2, width=bar_width, label='Brug Modes')
 
 # Customize the graph
-ax.set_xlabel('Allocaotrs', size=13)
+ax.set_xlabel('Allocators', size=13)
 ax.set_ylabel('Execution Time (s)', size=13)
 # ax.set_title('Bar Plot with Two Groups')
 
@@ -217,13 +231,15 @@ ax.set_ylabel('Execution Time (s)', size=13)
 ticks_pos = np.arange(len(x)) + bar_width / 2
 ax.set_xticks(ticks_pos)
 ax.set_xticklabels(x)
-ax.set_ylim([0,25])
+ax.set_ylim([0,300])
 plt.xticks(rotation=90)
 
 for i, v in enumerate(y1):
-    ax.text(i, v, str(v), ha='center', va='bottom',size = 7)
+    ax.text(i, v, str(v), ha='center', va='bottom',size = 6)    #size 6/7
 for i, v in enumerate(y2):
-    ax.text(i + bar_width, v, str(v), ha='center', va='bottom',size = 7)
+    ax.text(i + bar_width, v, str(v), ha='center', va='bottom',size = 6) #size 6/7
+
+# plt.text(3.15,85,"646.08",size=7)
 
 # Add a legend
 plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
