@@ -197,23 +197,15 @@ fn main() {
     // set_allocator_mode!(Allocatormode::_MMAP_,data_fusion_example());
 
     while n < 15 {
-<<<<<<< HEAD
         thread::sleep(time::Duration::from_secs(1));
         //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
         set_allocator_mode!(Allocatormode::_JEMALLOC_,arrow_functional(datasize));
         // arrow_functional(datasize);
-=======
-        // thread::sleep(time::Duration::from_secs(1));
-        // read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
-        // set_allocator_mode!(Allocatormode::_JEMALLOC_,read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml"));
-        // arrow_functional(datasize);
-        // set_allocator_mode!(Allocatormode::_BrugAutoOpt_,arrow_functional(datasize));
->>>>>>> refs/remotes/origin/main
+
         // running(datasize);
         // set_allocator_mode!(Allocatormode::_BrugAutoOpt_,running(datasize));
 
         arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml");
-        // set_allocator_mode!(
         //     Allocatormode::_MIMALLOC_,
         //     arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml")
         // );
