@@ -6,13 +6,11 @@ mod brug_allocator;
 #[cfg(unix)]
 pub use crate::brug_allocator::*;
 
-// #[global_allocator]
-// static GLOBAL: brug_allocator::BrugAllocator = brug_allocator::BrugAllocator;
+#[global_allocator]
+static GLOBAL: brug_allocator::BrugAllocator = brug_allocator::BrugAllocator;
 
 // #[global_allocator]
 // static GLOBAL: Jemalloc = Jemalloc;
-
-
 
 // #[global_allocator]
 // static GLOBAL: MiMalloc = MiMalloc;
@@ -183,8 +181,8 @@ fn main() {
     while n < 15 {
         thread::sleep(time::Duration::from_secs(1));
         //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
-        // set_allocator_mode!(Allocatormode::_SYS_,arrow_functional(datasize));
-        arrow_functional(datasize);
+        set_allocator_mode!(Allocatormode::_JEMALLOC_,arrow_functional(datasize));
+        // arrow_functional(datasize);
         // running(datasize);
         //     println!("      ");
 
