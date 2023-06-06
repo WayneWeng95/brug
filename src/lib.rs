@@ -229,7 +229,7 @@ mod tests {
         println!("{:?}", duration);
     }
 
-    static DATASIZE: i64 = 100000000;
+    static DATASIZE: i64 = 1000000000;
     static REPEATS: i64 = 1;
 
     #[test]

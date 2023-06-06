@@ -43,7 +43,7 @@ pub static mut BRUG_TEMPLATE: BrugTemplate = BrugTemplate {
     sys: (true, 4 * KIBIBYTE, 64 * KIBIBYTE),
     jemalloc: (true, 0, 4 * KIBIBYTE),
     mimalloc: (false, 0, 0),
-    mmap: (true, 64 * KIBIBYTE, 16 * GIBIBYTE),
+    mmap: (true, 64 * KIBIBYTE, 128 * GIBIBYTE),
 };
 
 #[derive(Debug)]
