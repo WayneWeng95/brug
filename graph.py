@@ -32,7 +32,7 @@ df1.plot(x='Data Structure',
          )
 
 plt.ylabel(ylabel='Execuation Time Normalized by SYS',size = 11.5)
-plt.xlabel(xlabel='Data Sturctures',size =11.5)
+plt.xlabel(xlabel='Data Structures',size =11.5)
 
 plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
           ncol=3, fancybox=True,shadow = True,ncols=4)
