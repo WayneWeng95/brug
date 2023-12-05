@@ -175,11 +175,13 @@ mod tests {
         let start = Instant::now();
 
         for n in 0..datasize {
-            if n % 2 == 0 {
-                vec.push(p1);
-            } else {
-                vec.push(p2);
-            }
+            // if n % 2 == 0 {
+            //     vec.push(p1);
+            // } else {
+            //     vec.push(p2);
+            // }
+
+            vec.push(n);
            
             // vec.push("This is a test string 123321123321");
 

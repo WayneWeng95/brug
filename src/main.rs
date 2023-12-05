@@ -177,7 +177,7 @@ fn read_file_buffer(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
 use std::{thread, time};
 
 fn main() {
-    let datasize = 100_000_000;
+    let datasize = 100_000_0000;
 
     // let allocator = brug::Allocatormode::_SYS_;
     // let allocator = brug::Allocatormode::_JEMALLOC_;
@@ -187,7 +187,10 @@ fn main() {
     // let allocator = brug::Allocatormode::_BrugAutoOpt_;
 
     // read_file_vec("/home/weikang/Documents/Brug/Wikidump/enwiki-20230201-pages-articles-multistream1.xml-p1p41242").unwrap();
+    // set_allocator_mode!(Allocatormode::_SYS_,read_file_vec("/home/weikang/Documents/Brug/Wikidump/test.xml"));
+    set_allocator_mode!(Allocatormode::_MMAP_,read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml"));
     // read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
+    // set_allocator_mode!(Allocatormode::_BrugTemplate_,running(datasize));
 
     let mut n = 0;
 
@@ -196,31 +199,31 @@ fn main() {
     // data_fusion_example();
     // set_allocator_mode!(Allocatormode::_MMAP_,data_fusion_example());
 
-    while n < 15 {
-        thread::sleep(time::Duration::from_secs(1));
-        //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
-        set_allocator_mode!(Allocatormode::_JEMALLOC_,arrow_functional(datasize));
-        // arrow_functional(datasize);
+    // while n < 5 {
+    //     thread::sleep(time::Duration::from_secs(1));
+    //     //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
+    //     // set_allocator_mode!(Allocatormode::_JEMALLOC_,arrow_functional(datasize));
+    //     // arrow_functional(datasize);
 
-        // running(datasize);
-        // set_allocator_mode!(Allocatormode::_BrugAutoOpt_,running(datasize));
+    //     // running(datasize);
+    //     set_allocator_mode!(Allocatormode::_SYS_,running(datasize));
 
-        arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml");
-        //     Allocatormode::_MIMALLOC_,
-        //     arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml")
-        // );
+    //     // arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml");
+    //     //     Allocatormode::_MIMALLOC_,
+    //     //     arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml")
+    //     // );
 
-        // data_fusion_example();
-        // set_allocator_mode!(Allocatormode::_MMAP_,data_fusion_example());
+    //     // data_fusion_example();
+    //     // set_allocator_mode!(Allocatormode::_MMAP_,data_fusion_example());
 
-        //     println!("      ");
+    //     //     println!("      ");
 
-        n += 1;
+    //     n += 1;
 
-        // brug::BrugStruct::end_set();
-        // brug::BrugStruct::monitor_print();
-        // brug::BrugStruct::disable_monitor();
-    }
+    //     // brug::BrugStruct::end_set();
+    //     // brug::BrugStruct::monitor_print();
+    //     // brug::BrugStruct::disable_monitor();
+    // }
 
     let _duration = _start.elapsed();
     println!("total time : {:?}", _duration);
