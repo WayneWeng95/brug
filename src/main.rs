@@ -109,7 +109,7 @@ use brug;
 
 use arrow::record_batch::*;
 use datafusion::datasource::file_format::file_type::FileCompressionType;
-use datafusion::error::Result;
+// use datafusion::error::Result;
 use datafusion::prelude::*;
 #[tokio::main]
 async fn data_fusion_example() -> Result<()> {
@@ -146,8 +146,10 @@ async fn data_fusion_example() -> Result<()> {
     Ok(())
 }
 
+use anyhow::Result;
 use std::fs;
 use std::io::Read;
+use wasmtime::*;
 
 fn read_file_vec(filepath: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let data = fs::read(filepath)?;
@@ -176,55 +178,150 @@ fn read_file_buffer(filepath: &str) -> Result<(), Box<dyn std::error::Error>> {
 
 use std::{thread, time};
 
-fn main() {
-    let datasize = 100_000_0000;
+// fn main() {
+//     let datasize = 100_000_0000;
 
-    // let allocator = brug::Allocatormode::_SYS_;
-    // let allocator = brug::Allocatormode::_JEMALLOC_;
-    // let allocator = brug::Allocatormode::_MIMALLOC_;
-    // let allocator = brug::Allocatormode::_MMAP_;
-    // let allocator = brug::Allocatormode::_BrugTemplate_;
-    // let allocator = brug::Allocatormode::_BrugAutoOpt_;
+//     // let allocator = brug::Allocatormode::_SYS_;
+//     // let allocator = brug::Allocatormode::_JEMALLOC_;
+//     // let allocator = brug::Allocatormode::_MIMALLOC_;
+//     // let allocator = brug::Allocatormode::_MMAP_;
+//     // let allocator = brug::Allocatormode::_BrugTemplate_;
+//     // let allocator = brug::Allocatormode::_BrugAutoOpt_;
 
-    // read_file_vec("/home/weikang/Documents/Brug/Wikidump/enwiki-20230201-pages-articles-multistream1.xml-p1p41242").unwrap();
-    // set_allocator_mode!(Allocatormode::_SYS_,read_file_vec("/home/weikang/Documents/Brug/Wikidump/test.xml"));
-    set_allocator_mode!(Allocatormode::_MMAP_,read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml"));
-    // read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
-    // set_allocator_mode!(Allocatormode::_BrugTemplate_,running(datasize));
+//     // read_file_vec("/home/weikang/Documents/Brug/Wikidump/enwiki-20230201-pages-articles-multistream1.xml-p1p41242").unwrap();
+//     // set_allocator_mode!(Allocatormode::_SYS_,read_file_vec("/home/weikang/Documents/Brug/Wikidump/test.xml"));
+//     // set_allocator_mode!(Allocatormode::_MMAP_,read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml"));
+//     // read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
+//     // set_allocator_mode!(Allocatormode::_BrugTemplate_,running(datasize));
 
-    let mut n = 0;
+//     let mut n = 0;
+
+//     let _start = Instant::now();
+
+//     // data_fusion_example();
+//     // set_allocator_mode!(Allocatormode::_MMAP_,data_fusion_example());
+
+//     // while n < 5 {
+//     //     thread::sleep(time::Duration::from_secs(1));
+//     //     //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
+//     //     // set_allocator_mode!(Allocatormode::_JEMALLOC_,arrow_functional(datasize));
+//     //     // arrow_functional(datasize);
+
+//     //     // running(datasize);
+//     //     set_allocator_mode!(Allocatormode::_SYS_,running(datasize));
+
+//     //     // arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml");
+//     //     //     Allocatormode::_MIMALLOC_,
+//     //     //     arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml")
+//     //     // );
+
+//     //     // data_fusion_example();
+//     //     // set_allocator_mode!(Allocatormode::_MMAP_,data_fusion_example());
+
+//     //     //     println!("      ");
+
+//     //     n += 1;
+
+//     //     // brug::BrugStruct::end_set();
+//     //     // brug::BrugStruct::monitor_print();
+//     //     // brug::BrugStruct::disable_monitor();
+//     // }
+
+//     let _duration = _start.elapsed();
+//     println!("total time : {:?}", _duration);
+// }
+
+// fn main() -> Result<()> {
+//     // Modules can be compiled through either the text or binary format
+//     let engine = Engine::default();
+//     let wat = r#"
+//         (module
+//             (import "host" "host_func" (func $host_hello (param i32)))
+
+//             (func (export "hello")
+//                 i32.const 3
+//                 call $host_hello)
+//         )
+//     "#;
+//     let module = Module::new(&engine, wat)?;
+
+//     // Create a `Linker` which will be later used to instantiate this module.
+//     // Host functionality is defined by name within the `Linker`.
+//     let mut linker = Linker::new(&engine);
+//     linker.func_wrap(
+//         "host",
+//         "host_func",
+//         |caller: Caller<'_, u32>, param: i32| {
+//             println!("Got {} from WebAssembly", param);
+//             println!("my host state is: {}", caller.data());
+//         },
+//     )?;
+
+//     // All wasm objects operate within the context of a "store". Each
+//     // `Store` has a type parameter to store host-specific data, which in
+//     // this case we're using `4` for.
+//     let mut store = Store::new(&engine, 4);
+//     let instance = linker.instantiate(&mut store, &module)?;
+//     let hello = instance.get_typed_func::<(), ()>(&mut store, "hello")?;
+
+//     let _start = Instant::now();
+
+//     // And finally we can call the wasm!
+//     // hello.call(&mut store, ())?;
+
+//     set_allocator_mode!(Allocatormode::_MMAP_,hello.call(&mut store, ())?);
+
+//     let _duration = _start.elapsed();
+//     println!("total time : {:?}", _duration);
+
+//     Ok(())
+// }
+
+use wasmtime_wasi::sync::WasiCtxBuilder;
+
+fn main() -> Result<()> {
+    unsafe{
+        brug_allocator::BrugStruct::change_monitor_limiter(4096);
+        brug_allocator::BrugStruct::set_mode(Allocatormode::_BrugAutoOpt_);
+    }
+    
+    let engine = Engine::default();
+
+    // First set up our linker which is going to be linking modules together. We
+    // want our linker to have wasi available, so we set that up here as well.
+    let mut linker = Linker::new(&engine);
+    wasmtime_wasi::add_to_linker(&mut linker, |s| s)?;
+
+    // Load and compile our two modules
+    let linking1 = Module::from_file(&engine, "examples/linking1.wat")?;
+    let linking2 = Module::from_file(&engine, "examples/linking2.wat")?;
+
+    // Configure WASI and insert it into a `Store`
+    let wasi = WasiCtxBuilder::new()
+        .inherit_stdio()
+        .inherit_args()?
+        .build();
+    let mut store = Store::new(&engine, wasi);
+
+    // Instantiate our first module which only uses WASI, then register that
+    // instance with the linker since the next linking will use it.
+    let linking2 = linker.instantiate(&mut store, &linking2)?;
+    linker.instance(&mut store, "linking2", linking2)?;
+
+    // And with that we can perform the final link and the execute the module.
+    let linking1 = linker.instantiate(&mut store, &linking1)?;
+    let run = linking1.get_typed_func::<(), ()>(&mut store, "run")?;
 
     let _start = Instant::now();
 
-    // data_fusion_example();
-    // set_allocator_mode!(Allocatormode::_MMAP_,data_fusion_example());
-
-    // while n < 5 {
-    //     thread::sleep(time::Duration::from_secs(1));
-    //     //     read_file_buffer("/home/weikang/Documents/Brug/Wikidump/test.xml");
-    //     // set_allocator_mode!(Allocatormode::_JEMALLOC_,arrow_functional(datasize));
-    //     // arrow_functional(datasize);
-
-    //     // running(datasize);
-    //     set_allocator_mode!(Allocatormode::_SYS_,running(datasize));
-
-    //     // arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml");
-    //     //     Allocatormode::_MIMALLOC_,
-    //     //     arrow_slice("/home/weikang/Documents/Brug/Wikidump/test.xml")
-    //     // );
-
-    //     // data_fusion_example();
-    //     // set_allocator_mode!(Allocatormode::_MMAP_,data_fusion_example());
-
-    //     //     println!("      ");
-
-    //     n += 1;
-
-    //     // brug::BrugStruct::end_set();
-    //     // brug::BrugStruct::monitor_print();
-    //     // brug::BrugStruct::disable_monitor();
-    // }
+    // set_allocator_mode!(Allocatormode::_SYS_,run.call(&mut store, ())?);
+    run.call(&mut store, ())?;
 
     let _duration = _start.elapsed();
     println!("total time : {:?}", _duration);
+    unsafe{
+        // brug_allocator::BrugStruct::change_monitor_limiter(4096);
+        brug_allocator::BrugStruct::end_set();
+    }
+    Ok(())
 }

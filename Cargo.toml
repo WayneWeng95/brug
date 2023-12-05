@@ -14,6 +14,8 @@ libc = "0.2.139"
 once_cell = "1.17.1"
 byte-unit = "4.0.19"
 wasmtime = "15.0.1"
+wasmtime-wasi = "15.0.1"
+anyhow = "1.0.75"
 
 arrow = "35.0.0"
 glassbench = "0.3.4"

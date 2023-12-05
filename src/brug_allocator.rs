@@ -247,7 +247,6 @@ impl BrugStruct {
     }
 
     unsafe fn automode_get_allocator(&mut self, ptr: *mut u8) -> Allocatormode {
-        //The auto get mode seems wrong
         //Get the current mode, remove the entry
         let _tree = self.mapping.get_mut().unwrap();
         let _ptr = ptr.clone() as usize;
@@ -257,7 +256,7 @@ impl BrugStruct {
                 return allocdata.allocator;
             }
             None => {
-                return DEFAULT_ALLOCATOR; //_SYS_
+                return DEFAULT_ALLOCATOR; //_SYS_       Here could be a problem
             }
         };
     }
@@ -450,7 +449,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
         //     let _addr = ptr.clone() as usize;
         //     BRUG.monitor_release(_addr);
         // }
-
         match BRUG.current_alloc {
             Allocatormode::_SYS_ => System.dealloc(ptr, layout),
             Allocatormode::_MIMALLOC_ => MiMalloc.dealloc(ptr, layout),
@@ -589,7 +587,7 @@ unsafe impl GlobalAlloc for BrugAllocator {
         }
 
         let _duration = _start.elapsed();
-        println!("{:?}", _duration);
+        // println!("{:?}", _duration);
 
         if BRUG.current_alloc == Allocatormode::_BrugAutoOpt_ && layout.size() >= PTE_PAGE_SIZE {
             let _ret = ret.clone() as usize;
