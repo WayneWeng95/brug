@@ -4,31 +4,31 @@ import matplotlib.pyplot as plt
 from collections import Counter
 from statistics import mean, variance, median
 
-df1 = pd.DataFrame([['Vector', 1.0000,1.1491,1.1128,1.0064,1.0065,1.0542,0.9953],
-                   ['VectorDQ', 1.0000,1.1845,1.1407,0.9964,0.9863,1.0187,0.9664],
-                   ['Linked List', 1.0000,1.0022,0.9983,0.0000,0.9962,1.0067],
-                   ['Hashmap', 1.0000,0.9152,0.9505,0.0000,0.9194,0.9773],
-                   ['BTreemap', 1.0000,1.0412,1.0332,0.0000,1.0262,1.0051],
-                   ['Hashset', 1.0000,1.0130,1.0130,1.0057,0.9957,1.0077],
-                   ['BTreeset', 1.0000,0.9936,0.9965,1.1622,1.0088,1.0004],
-                   ['BinaryHeap', 1.0000,1.0130,1.0183,0.9922,1.0011,0.9901,0.9855],
-                   ],
-                  columns=['Data Structure', 'SYS', 'Jemalloc', 'Mimalloc', 'MMAP', 'BrugTemplate', 'BrugAuto', 'BrugAuto_Trained'])
-# view data
-print(df1)
+# df1 = pd.DataFrame([['Vector', 1.0000,1.1491,1.1128,1.0064,1.0065,1.0542,0.9953],
+#                    ['VectorDQ', 1.0000,1.1845,1.1407,0.9964,0.9863,1.0187,0.9664],
+#                    ['Linked List', 1.0000,1.0022,0.9983,0.0000,0.9962,1.0067],
+#                    ['Hashmap', 1.0000,0.9152,0.9505,0.0000,0.9194,0.9773],
+#                    ['BTreemap', 1.0000,1.0412,1.0332,0.0000,1.0262,1.0051],
+#                    ['Hashset', 1.0000,1.0130,1.0130,1.0057,0.9957,1.0077],
+#                    ['BTreeset', 1.0000,0.9936,0.9965,1.1622,1.0088,1.0004],
+#                    ['BinaryHeap', 1.0000,1.0130,1.0183,0.9922,1.0011,0.9901,0.9855],
+#                    ],
+#                   columns=['Data Structure', 'SYS', 'Jemalloc', 'Mimalloc', 'MMAP', 'BrugTemplate', 'BrugAuto', 'BrugAuto_Trained'])
+# # view data
+# print(df1)
 
-colors = ['#d53e4f', '#fc8d59', '#fee08b', '#ffffbf', '#e6f598', '#99d594', '#3288bd']
+# colors = ['#d53e4f', '#fc8d59', '#fee08b', '#ffffbf', '#e6f598', '#99d594', '#3288bd']
 
-# plot grouped bar chart
-df1.plot(x='Data Structure',
-         kind='bar',
-         stacked=False,
-         rot=0,
-         ylim=(0.9, 1.25),
-        #  ylabel=('Execuation Time Normalized by SYS'),
-        #  title='Bar Graph with different Rust datasturctus using different allocators',
-        color = colors,
-         )
+# # plot grouped bar chart
+# df1.plot(x='Data Structure',
+#          kind='bar',
+#          stacked=False,
+#          rot=0,
+#          ylim=(0.9, 1.25),
+#         #  ylabel=('Execuation Time Normalized by SYS'),
+#         #  title='Bar Graph with different Rust datasturctus using different allocators',
+#         color = colors,
+#          )
 
 
 # df1 = pd.DataFrame([['Vector', 1.0000,1.1491,1.1128,1.0064],
@@ -56,6 +56,8 @@ df1.plot(x='Data Structure',
 #         #  title='Bar Graph with different Rust datasturctus using different allocators',
 #         color = colors,
 #          )
+
+
 
 
 
@@ -204,10 +206,10 @@ df1.plot(x='Data Structure',
 # plt.xlabel('Allocators',size=14)
 
 
-## Graph For Rust bar graphes
+# Graph For Rust bar graphes
 # Data for the x-axis
-# x = ['Ptmalloc2 (SYS)', 'Jemalloc', 'Mimalloc',
-#      'MMAP', 'BrugTemplate', 'BrugAutoOpt']
+x = ['Ptmalloc2 (SYS)', 'Jemalloc', 'Mimalloc',
+     'MMAP', 'BrugTemplate', 'BrugAutoOpt']
 
 
 # # Rust standard vector
@@ -238,54 +240,55 @@ df1.plot(x='Data Structure',
 # # y2 = [240.90, 258.83, 244.17, 87.76, 88.17, 100.33]  # Group B (5 data points)
 
 
-# # # Rust Arrow Datafusion
-# # # Data for the y-axis (values for each group)
-# # y1 = [50.83, 81.52, 70.90, np.nan, 
-# #       np.nan, np.nan]  # Group A (5 data points)s
-# # y2 = [56.57, 83.93, 75.07, 646.08, 87.31, 63.56]  # Group B (5 data points)
+# Rust Arrow Datafusion
+# Data for the y-axis (values for each group)
+y1 = [55.81,56.15,54.16, np.nan, 
+      np.nan, np.nan]  # Group A (5 data points)s
+y2 = [50.07,50.69,51.13,142.70,50.35,47.72]  # Group B (5 data points)
 
 
-# # Set the width of the bars
-# bar_width = 0.35
+# Set the width of the bars
+bar_width = 0.35
 
-# # Set the positions of the bars on the x-axis
-# pos1 = np.arange(len(y1))
-# pos2 = [x + bar_width for x in np.arange(len(y2))]
+# Set the positions of the bars on the x-axis
+pos1 = np.arange(len(y1))
+pos2 = [x + bar_width for x in np.arange(len(y2))]
 
-# # Create a figure and axis
-# fig, ax = plt.subplots(figsize=(6,4))
+# Create a figure and axis
+fig, ax = plt.subplots(figsize=(6,4))
 
-# # Plot the bars for Group A
-# ax.bar(pos1, y1, width=bar_width, label='Global allocator',color = 'lightcoral')
+# Plot the bars for Group A
+ax.bar(pos1, y1, width=bar_width, label='Global allocator',color = 'lightcoral')
 
-# # Plot the bars for Group B
-# ax.bar(pos2, y2, width=bar_width, label='Brug Modes',color = 'cornflowerblue')
+# Plot the bars for Group B
+ax.bar(pos2, y2, width=bar_width, label='Brug Modes',color = 'cornflowerblue')
 
-# # Customize the graph
-# ax.set_xlabel('Allocators', size=13)
-# ax.set_ylabel('Execution Time (s)', size=13)
-# # ax.set_title('Bar Plot with Two Groups')
+# Customize the graph
+ax.set_xlabel('Allocators', size=13)
+ax.set_ylabel('Execution Time (μs)', size=13)
+# ax.set_title('Bar Plot with Two Groups')
 
-# # Set the tick positions and labels
-# ticks_pos = np.arange(len(x)) + bar_width / 2
-# ax.set_xticks(ticks_pos)
-# ax.set_xticklabels(x)
-# ax.set_ylim([0,300])
-# plt.xticks(rotation=30)
+# Set the tick positions and labels
+ticks_pos = np.arange(len(x)) + bar_width / 2
+ax.set_xticks(ticks_pos)
+ax.set_xticklabels(x)
+ax.set_ylim([0,75])
+plt.xticks(rotation=30)
 
-# for i, v in enumerate(y1):
-#     ax.text(i, v, str(v), ha='center', va='bottom',size = 6)    #size 6/7
-# for i, v in enumerate(y2):
-#     ax.text(i + bar_width, v, str(v), ha='center', va='bottom',size = 6) #size 6/7
+for i, v in enumerate(y1):
+    ax.text(i, v, str(v), ha='center', va='bottom',size = 6)    #size 6/7
+for i, v in enumerate(y2):
+    ax.text(i + bar_width, v, str(v), ha='center', va='bottom',size = 6) #size 6/7
 
-# # plt.text(3.15,115,"646.08",size=6.5)
+# plt.text(3.15,115,"646.08",size=6.5)
+plt.text(3.15,65,"142.70",size=6.5)
 
-# # Add a legend
-# # plt.legend(loc='upper left', bbox_to_anchor=(0.5, 1.05),
-# #            ncol=3, fancybox=True, shadow=True)
-# plt.legend(loc='upper right')
+# Add a legend
+# plt.legend(loc='upper left', bbox_to_anchor=(0.5, 1.05),
+#            ncol=3, fancybox=True, shadow=True)
+plt.legend(loc='upper right')
 
-# # Adjust the spacing between subplots
+# Adjust the spacing between subplots
 plt.tight_layout()
 
 # Display the graph

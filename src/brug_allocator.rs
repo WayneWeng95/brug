@@ -61,7 +61,7 @@ struct Monitordata {
     total_duration: Duration,
 }
 
-static DEFAULT_ALLOCATOR: Allocatormode = Allocatormode::_BrugAutoOpt_; //Current Set as the _SYS_ allocator for default
+static DEFAULT_ALLOCATOR: Allocatormode = Allocatormode::_JEMALLOC_; //Current Set as the _SYS_ allocator for default
 static PTE_PAGE_SIZE: usize = 4096; //4 KiB
                                     // static PMD_PAGE_SIZE: usize = 2097152; //2 MiB
                                     // static PUD_PAGE_SIZE: usize = 1073741824; //1 GiB
