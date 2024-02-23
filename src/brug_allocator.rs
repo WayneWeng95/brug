@@ -6,7 +6,7 @@ use std::sync::atomic::AtomicI32;
 use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-// use tcmalloc;
+// use tcmalloc;            //The rust implementation of tcmalloc is not stable so we will not use it
 use byte_unit::{GIBIBYTE, KIBIBYTE}; //MEBIBYTE
 use std::os::raw::c_void;
 use std::ptr;
@@ -55,6 +55,7 @@ struct Allocdata {
 
 #[derive(Debug)]
 struct Monitordata {
+    //Data sturcture to hold the monitor datas
     realloc_counter: i32,
     addr_counter: i32,
     total_size: usize,
@@ -73,7 +74,8 @@ pub struct BrugStruct {
     current_alloc: Allocatormode,
     monitor_flag: AtomicBool,
     monitor_map: Mutex<BTreeMap<usize, Monitordata>>,
-    monitor_size_limiter: AtomicI32, //This is the limiter for the monitor mode, the tree inserts speed is not capabile enough
+    monitor_size_limiter: AtomicI32, //This is the limiter for the monitor mode, these ensure the tree is not populated with
+                                     //small objects
 }
 unsafe impl Sync for BrugStruct {}
 
@@ -83,7 +85,7 @@ static mut BRUG: BrugStruct = BrugStruct {
     current_alloc: DEFAULT_ALLOCATOR, //Indicating the Brug current mode, can be change to another ？
     monitor_flag: AtomicBool::new(false),
     monitor_map: Mutex::new(BTreeMap::new()),
-    monitor_size_limiter: AtomicI32::new(1024), //First assign to 1024
+    monitor_size_limiter: AtomicI32::new(1024), //Currently assign to 1024, this is the default value
 };
 
 #[allow(dead_code)]
@@ -110,7 +112,6 @@ impl BrugStruct {
                 BRUG.current_alloc = Allocatormode::_BrugAutoOpt_;
             } // _ => BRUG.mode.store(0, SeqCst), //Default Mode, use the _SYS allocator
         }
-
     }
 
     pub unsafe fn end_set() {
@@ -342,9 +343,6 @@ impl BrugStruct {
     } //Output records
 }
 
-// #[global_allocator]
-// static GLOBAL: BrugAllocator = BrugAllocator;
-
 unsafe impl GlobalAlloc for BrugAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         //allocation function
@@ -443,12 +441,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         //Free function
-
-        // if BRUG.monitor_flag.load(SeqCst) {
-        //     //Think about how to deal with records
-        //     let _addr = ptr.clone() as usize;
-        //     BRUG.monitor_release(_addr);
-        // }
         match BRUG.current_alloc {
             Allocatormode::_SYS_ => System.dealloc(ptr, layout),
             Allocatormode::_MIMALLOC_ => MiMalloc.dealloc(ptr, layout),
@@ -485,8 +477,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
             } // Allocatormode::_TCMALLOC_ => tcmalloc::tc_free(ptr as *mut c_void),
         }
     }
-
-    // unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 { ... } //calloc
 
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         //realloc function
@@ -537,10 +527,6 @@ unsafe impl GlobalAlloc for BrugAllocator {
                         _ => ret = System.realloc(ptr, layout, new_size),
                     }
                 } else {
-                    // println!(
-                    //     "current: {:?} -> new: {:?} , size :{}",
-                    //     _current_allocator, _new_allocator, new_size
-                    // );       //This indicates the change happens in the auto mode
                     ret = match _new_allocator {
                         Allocatormode::_SYS_ => System.alloc(_new),
                         Allocatormode::_MIMALLOC_ => MiMalloc.alloc(_new),
